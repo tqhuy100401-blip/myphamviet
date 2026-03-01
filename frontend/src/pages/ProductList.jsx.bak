@@ -1,0 +1,727 @@
+import { useState, useEffect } from "react";
+import axiosClient from "../api/axiosClient";
+import { Link, useNavigate, useSearchParams } from "react-router-dom";
+import { toast } from "react-toastify";
+import ReactPaginate from "react-paginate";
+import { FiShoppingCart, FiPackage, FiSearch, FiFilter, FiX } from "react-icons/fi";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+const ITEMS_PER_PAGE = 8;
+
+function ProductList() {
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [currentPage, setCurrentPage] = useState(0);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [selectedPriceRange, setSelectedPriceRange] = useState("all");
+  const [sortBy, setSortBy] = useState("createdAt");
+  const [sortOrder, setSortOrder] = useState("desc");
+  const [inStockOnly, setInStockOnly] = useState(false);
+  const [showFilters, setShowFilters] = useState(true);
+  const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  // Build query params for API
+  const buildQueryParams = () => {
+    const params = {
+      sortBy,
+      order: sortOrder,
+    };
+    
+    if (searchTerm) params.search = searchTerm;
+    if (selectedCategory !== "all") params.category = selectedCategory;
+    if (inStockOnly) params.inStock = "true";
+    
+    // Price range
+    if (selectedPriceRange !== "all") {
+      switch(selectedPriceRange) {
+        case "under-100k":
+          params.maxPrice = 100000;
+          break;
+        case "100k-300k":
+          params.minPrice = 100000;
+          params.maxPrice = 300000;
+          break;
+        case "300k-500k":
+          params.minPrice = 300000;
+          params.maxPrice = 500000;
+          break;
+        case "500k-1m":
+          params.minPrice = 500000;
+          params.maxPrice = 1000000;
+          break;
+        case "over-1m":
+          params.minPrice = 1000000;
+          break;
+      }
+    }
+    
+    return params;
+  };
+
+  const { data: productsData, isLoading } = useQuery({
+    queryKey: ["products", searchTerm, selectedCategory, selectedPriceRange, sortBy, sortOrder, inStockOnly],
+    queryFn: () => {
+      const params = buildQueryParams();
+      return axiosClient.get("/products", { params }).then(res => res.data);
+    },
+  });
+
+  const products = productsData?.products || [];
+  const totalProducts = productsData?.total || 0;
+
+  const { data: categories = [] } = useQuery({
+    queryKey: ["categories"],
+    queryFn: () => axiosClient.get("/categories").then(res => res.data),
+  });
+
+  const { data: allProducts = [] } = useQuery({
+    queryKey: ["all-products"],
+    queryFn: () => axiosClient.get("/products").then(res => res.data.products || res.data),
+  });
+
+  // Xử lý URL query parameter
+  useEffect(() => {
+    const categorySlug = searchParams.get("category");
+    if (categorySlug) {
+      const cat = categories.find(c => c.slug === categorySlug);
+      if (cat) {
+        setSelectedCategory(cat.name);
+      }
+    }
+  }, [searchParams, categories]);
+
+  // Filtered products for display
+  let filteredProducts = products;
+
+  const buyNow = async (e, productId) => {
+    e.stopPropagation();
+    const token = localStorage.getItem("token");
+    if (!token) {
+      toast.warn("Vui lòng đăng nhập để mua hàng!");
+      navigate("/login");
+      return;
+    }
+    try {
+      await axiosClient.post("/cart/add", { productId, quantity: 1 });
+      toast.success("✅ Đã thêm vào giỏ hàng!");
+      queryClient.invalidateQueries({ queryKey: ["cart-count"] });
+    } catch (err) {
+      toast.error("Lỗi: " + (err.response?.data?.message || err.message));
+    }
+  };
+
+  const pageCount = Math.ceil(filteredProducts.length / ITEMS_PER_PAGE);
+  const offset = currentPage * ITEMS_PER_PAGE;
+  const currentProducts = filteredProducts.slice(offset, offset + ITEMS_PER_PAGE);
+
+  const handlePageClick = ({ selected }) => {
+    setCurrentPage(selected);
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  };
+
+  const handleCategoryChange = (category) => {
+    setSelectedCategory(category);
+    setCurrentPage(0);
+  };
+
+  const handlePriceChange = (range) => {
+    setSelectedPriceRange(range);
+    setCurrentPage(0);
+  };
+
+  const handleSearch = (e) => {
+    setSearchTerm(e.target.value);
+    setCurrentPage(0);
+  };
+
+  const handleSortChange = (newSortBy) => {
+    if (sortBy === newSortBy) {
+      setSortOrder(sortOrder === "asc" ? "desc" : "asc");
+    } else {
+      setSortBy(newSortBy);
+      setSortOrder("desc");
+    }
+    setCurrentPage(0);
+  };
+
+  const clearAllFilters = () => {
+    setSearchTerm("");
+    setSelectedCategory("all");
+    setSelectedPriceRange("all");
+    setSortBy("createdAt");
+    setSortOrder("desc");
+    setInStockOnly(false);
+    setCurrentPage(0);
+  };
+
+  const hasActiveFilters = searchTerm || selectedCategory !== "all" || selectedPriceRange !== "all" || inStockOnly || sortBy !== "createdAt";
+
+  if (isLoading) {
+    return (
+      <div className="container mt-5 text-center">
+        <div className="spinner-border text-primary" role="status" />
+        <p className="mt-2 text-muted">Đang tải sản phẩm...</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="container mt-4 mb-5">
+      <style>{`
+        .pagination-container {
+          display: flex; justify-content: center; margin-top: 30px; gap: 4px;
+        }
+        .pagination-container li {
+          list-style: none;
+        }
+        .pagination-container li a {
+          display: flex; align-items: center; justify-content: center;
+          width: 40px; height: 40px; border-radius: 10px;
+          font-weight: 600; font-size: 14px; cursor: pointer;
+          border: 2px solid #e2e8f0; color: #4a5568;
+          background: #fff; transition: all .2s ease; text-decoration: none;
+        }
+        .pagination-container li a:hover {
+          border-color: #667eea; color: #667eea;
+          transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,.2);
+        }
+        .pagination-container li.selected a {
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          color: #fff; border-color: transparent;
+          box-shadow: 0 4px 15px rgba(102,126,234,.4);
+        }
+        .pagination-container li.disabled a {
+          opacity: 0.4; cursor: not-allowed; transform: none; box-shadow: none;
+        }
+        .pagination-container li.previous a,
+        .pagination-container li.next a {
+          width: auto; padding: 0 14px; font-size: 13px;
+        }
+        .search-box {
+          position: relative;
+        }
+        .search-box input {
+          padding-left: 40px;
+          border-radius: 12px;
+          border: 2px solid #e2e8f0;
+          transition: all .3s ease;
+        }
+        .search-box input:focus {
+          border-color: #667eea;
+          box-shadow: 0 0 0 4px rgba(102,126,234,.15);
+          outline: none;
+        }
+        .search-icon {
+          position: absolute;
+          left: 12px;
+          top: 50%;
+          transform: translateY(-50%);
+          color: #a0aec0;
+        }
+        .filter-card {
+          background: #fff;
+          border-radius: 16px;
+          padding: 20px;
+          box-shadow: 0 4px 20px rgba(0,0,0,0.06);
+          margin-bottom: 20px;
+        }
+        .sort-btn {
+          padding: 8px 16px;
+          border-radius: 10px;
+          border: 2px solid #e2e8f0;
+          background: #fff;
+          color: #4a5568;
+          font-weight: 600;
+          font-size: 13px;
+          cursor: pointer;
+          transition: all .2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 6px;
+        }
+        .sort-btn:hover {
+          border-color: #667eea;
+          color: #667eea;
+          transform: translateY(-2px);
+        }
+        .sort-btn.active {
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          color: #fff;
+          border-color: transparent;
+        }
+        .product-card {
+          border-radius: 16px;
+          overflow: hidden;
+          transition: all .3s ease;
+          border: 2px solid #f7fafc;
+          height: 100%;
+        }
+        .product-card:hover {
+          transform: translateY(-8px);
+          box-shadow: 0 12px 30px rgba(0,0,0,0.12);
+          border-color: #667eea;
+        }
+        .badge-stock {
+          position: absolute;
+          top: 12px;
+          right: 12px;
+          background: rgba(72,187,120,0.95);
+          color: #fff;
+          padding: 4px 10px;
+          border-radius: 20px;
+          font-size: 11px;
+          font-weight: 700;
+          backdrop-filter: blur(10px);
+        }
+        .badge-out-of-stock {
+          background: rgba(245,101,101,0.95);
+        }
+      `}</style>
+
+      {/* Header */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="d-flex align-items-center gap-2" style={{ fontWeight: 800, color: "#1a202c", margin: 0 }}>
+          <FiPackage size={28} /> Danh sách sản phẩm
+        </h2>
+        <button 
+          className="btn btn-outline-secondary d-flex align-items-center gap-2"
+          onClick={() => setShowFilters(!showFilters)}
+        >
+          <FiFilter size={16} />
+          {showFilters ? "Ẩn bộ lọc" : "Hiện bộ lọc"}
+        </button>
+      </div>
+
+      {/* Search & Filters */}
+      {showFilters && (
+        <div className="filter-card">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="search-box">
+              <FiSearch className="search-icon" size={18} />
+              <input
+                type="text"
+                className="form-control"
+                placeholder="🔍 Tìm kiếm sản phẩm theo tên..."
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+            </div>
+          </div>
+
+          {/* Sort Options */}
+          <div className="mb-4">
+            <h6 className="fw-bold mb-3" style={{ fontSize: "14px", color: "#4a5568" }}>
+              📊 SẮP XẾP
+            </h6>
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                className={`sort-btn ${sortBy === "createdAt" ? "active" : ""}`}
+                onClick={() => handleSortChange("createdAt")}
+              >
+                🆕 Mới nhất
+                {sortBy === "createdAt" && (sortOrder === "asc" ? " ↑" : " ↓")}
+              </button>
+              <button
+                className={`sort-btn ${sortBy === "price" ? "active" : ""}`}
+                onClick={() => handleSortChange("price")}
+              >
+                💰 Giá
+                {sortBy === "price" && (sortOrder === "asc" ? " ↑" : " ↓")}
+              </button>
+              <button
+                className={`sort-btn ${sortBy === "name" ? "active" : ""}`}
+                onClick={() => handleSortChange("name")}
+              >
+                🔤 Tên
+                {sortBy === "name" && (sortOrder === "asc" ? " ↑" : " ↓")}
+              </button>
+              <button
+                className={`sort-btn ${sortBy === "stock" ? "active" : ""}`}
+                onClick={() => handleSortChange("stock")}
+              >
+                📦 Tồn kho
+                {sortBy === "stock" && (sortOrder === "asc" ? " ↑" : " ↓")}
+              </button>
+            </div>
+          </div>
+
+          {/* Filter danh mục */}
+          <div className="mb-3">
+            <h6 className="fw-bold mb-3" style={{ fontSize: "14px", color: "#4a5568" }}>📋 DANH MỤC</h6>
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                className={`btn btn-sm ${selectedCategory === "all" ? "btn-primary" : "btn-outline-primary"}`}
+                onClick={() => handleCategoryChange("all")}
+              >
+                📋 Tất cả ({allProducts.length})
+              </button>
+              {categories.map(cat => {
+                const count = allProducts.filter(p => p.category === cat.name).length;
+                const iconLabel = {
+                  "FiTag": "🏷️",
+                  "FiHeart": "💖",
+                  "FiStar": "⭐",
+                  "FiDroplet": "💧",
+                  "FiSun": "☀️",
+                  "FiFeather": "🪶",
+                  "FiPackage": "📦",
+                  "FiGift": "🎁",
+                }[cat.icon] || "🏷️";
+                return (
+                  <button
+                    key={cat._id}
+                    className={`btn btn-sm ${selectedCategory === cat.name ? "btn-primary" : "btn-outline-primary"}`}
+                    onClick={() => handleCategoryChange(cat.name)}
+                  >
+                    {iconLabel} {cat.name} ({count})
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Filter giá */}
+          <div className="mb-4">
+            <h6 className="fw-bold mb-3" style={{ fontSize: "14px", color: "#4a5568" }}>💰 KHOẢNG GIÁ</h6>
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                className={`btn btn-sm ${selectedPriceRange === "all" ? "btn-success" : "btn-outline-success"}`}
+                onClick={() => handlePriceChange("all")}
+              >
+                Tất cả
+              </button>
+              <button
+                className={`btn btn-sm ${selectedPriceRange === "under-100k" ? "btn-success" : "btn-outline-success"}`}
+                onClick={() => handlePriceChange("under-100k")}
+              >
+                Dưới 100k
+              </button>
+              <button
+                className={`btn btn-sm ${selectedPriceRange === "100k-300k" ? "btn-success" : "btn-outline-success"}`}
+                onClick={() => handlePriceChange("100k-300k")}
+              >
+                100k - 300k
+              </button>
+              <button
+                className={`btn btn-sm ${selectedPriceRange === "300k-500k" ? "btn-success" : "btn-outline-success"}`}
+                onClick={() => handlePriceChange("300k-500k")}
+              >
+                300k - 500k
+              </button>
+              <button
+                className={`btn btn-sm ${selectedPriceRange === "500k-1m" ? "btn-success" : "btn-outline-success"}`}
+                onClick={() => handlePriceChange("500k-1m")}
+              >
+                500k - 1tr
+              </button>
+              <button
+                className={`btn btn-sm ${selectedPriceRange === "over-1m" ? "btn-success" : "btn-outline-success"}`}
+                onClick={() => handlePriceChange("over-1m")}
+              >
+                Trên 1tr
+              </button>
+            </div>
+          </div>
+
+          {/* Filter tồn kho */}
+          <div className="mb-3">
+            <h6 className="fw-bold mb-3" style={{ fontSize: "14px", color: "#4a5568" }}>📦 TÌNH TRẠNG</h6>
+            <div className="form-check">
+              <input
+                className="form-check-input"
+                type="checkbox"
+                id="inStockCheck"
+                checked={inStockOnly}
+                onChange={(e) => {
+                  setInStockOnly(e.target.checked);
+                  setCurrentPage(0);
+                }}
+              />
+              <label className="form-check-label" htmlFor="inStockCheck" style={{ fontSize: "14px" }}>
+                ✅ Chỉ hiển thị sản phẩm còn hàng
+              </label>
+            </div>
+          </div>
+
+          {/* Clear Filters */}
+          {hasActiveFilters && (
+            <div className="text-center pt-2 border-top">
+              <button
+                className="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-2"
+                onClick={clearAllFilters}
+              >
+                <FiX size={16} />
+                Xóa tất cả bộ lọc
+              </button>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Results Count */}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <div>
+          <span style={{
+            background: "linear-gradient(135deg, #667eea, #764ba2)",
+            color: "#fff", padding: "8px 18px", borderRadius: "20px",
+            fontSize: "14px", fontWeight: 600
+          }}>
+            Tìm thấy {totalProducts} sản phẩm
+          </span>
+          {searchTerm && (
+            <span className="ms-2 text-muted" style={{ fontSize: "14px" }}>
+              với từ khóa "<strong>{searchTerm}</strong>"
+            </span>
+          )}
+        </div>
+      </div>
+
+      {/* Products Grid */}
+      {showFilters && (
+        <div className="filter-card">
+          {/* Search Bar */}
+          <div className="mb-4">
+            <div className="search-box">
+              <FiSearch className="search-icon" size={18} />
+              <input
+                type="text"
+                className="form-control"
+                placeholder="🔍 Tìm kiếm sản phẩm theo tên..."
+                value={searchTerm}
+                onChange={handleSearch}
+              />
+            </div>
+          </div>
+
+          {/* Sort Options */}
+          <div className="mb-4">
+            <h6 className="fw-bold mb-3" style={{ fontSize: "14px", color: "#4a5568" }}>
+              📊 SẮP XẾP
+            </h6>
+            <div className="d-flex flex-wrap gap-2">
+              <button
+                className={`sort-btn ${sortBy === "createdAt" ? "active" : ""}`}
+                onClick={() => handleSortChange("createdAt")}
+              >
+                🆕 Mới nhất
+                {sortBy === "createdAt" && (sortOrder === "asc" ? " ↑" : " ↓")}
+              </button>
+              <button
+                className={`sort-btn ${sortBy === "price" ? "active" : ""}`}
+                onClick={() => handleSortChange("price")}
+              >
+                💰 Giá
+                {sortBy === "price" && (sortOrder === "asc" ? " ↑" : " ↓")}
+              </button>
+              <button
+                className={`sort-btn ${sortBy === "name" ? "active" : ""}`}
+                onClick={() => handleSortChange("name")}
+              >
+                🔤 Tên
+                {sortBy === "name" && (sortOrder === "asc" ? " ↑" : " ↓")}
+              </button>
+              <button
+                className={`sort-btn ${sortBy === "stock" ? "active" : ""}`}
+                onClick={() => handleSortChange("stock")}
+              >
+                📦 Tồn kho
+                {sortBy === "stock" && (sortOrder === "asc" ? " ↑" : " ↓")}
+              </button>
+            </div>
+          </div>
+
+          {/* Filter danh mục */}
+          <div className="mb-3">
+        <h6 className="fw-bold mb-2" style={{ fontSize: "14px", color: "#4a5568" }}>📋 DANH MỤC</h6>
+        <div className="d-flex flex-wrap gap-2">
+          <button
+            className={`btn ${selectedCategory === "all" ? "btn-primary" : "btn-outline-primary"}`}
+            onClick={() => handleCategoryChange("all")}
+          >
+            📋 Tất cả ({products.length})
+          </button>
+          {categories.map(cat => {
+            const count = products.filter(p => p.category === cat.name).length;
+            const iconLabel = {
+              "FiTag": "🏷️",
+              "FiHeart": "💖",
+              "FiStar": "⭐",
+              "FiDroplet": "💧",
+              "FiSun": "☀️",
+              "FiFeather": "🪶",
+              "FiPackage": "📦",
+              "FiGift": "🎁",
+            }[cat.icon] || "🏷️";
+            return (
+              <button
+                key={cat._id}
+                className={`btn ${selectedCategory === cat.name ? "btn-primary" : "btn-outline-primary"}`}
+                onClick={() => handleCategoryChange(cat.name)}
+              >
+                {iconLabel} {cat.name} ({count})
+              </button>
+            );
+          })}
+        </div>
+      </div>
+
+      {/* Filter giá */}
+      <div className="mb-4">
+        <h6 className="fw-bold mb-2" style={{ fontSize: "14px", color: "#4a5568" }}>💰 KHOẢNG GIÁ</h6>
+        <div className="d-flex flex-wrap gap-2">
+          <button
+            className={`btn btn-sm ${selectedPriceRange === "all" ? "btn-success" : "btn-outline-success"}`}
+            onClick={() => handlePriceChange("all")}
+          >
+            Tất cả
+          </button>
+          <button
+            className={`btn btn-sm ${selectedPriceRange === "under-100k" ? "btn-success" : "btn-outline-success"}`}
+      {/* Products Grid */}
+      {currentProducts.length === 0 ? (
+        <div className="text-center py-5">
+          <div style={{ fontSize: "64px", marginBottom: "16px" }}>🔍</div>
+          <h4 style={{ color: "#2d3748", fontWeight: 700 }}>Không tìm thấy sản phẩm</h4>
+          <p className="text-muted">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+          {hasActiveFilters && (
+            <button
+              className="btn btn-outline-primary mt-3"
+              onClick={clearAllFilters}
+            >
+              Xóa tất cả bộ lọc
+            </button>
+          )}
+        </div>
+      ) : (
+        <div className="row">
+          {currentProducts.map(p => (
+            <div className="col-lg-3 col-md-4 col-sm-6 mb-4" key={p._id}>
+              <div className="card product-card" style={{ cursor: "pointer" }}>
+                <Link to={`/product/${p._id}`} style={{ textDecoration: "none", color: "inherit", position: "relative" }}>
+                  <img
+                    src={p.image ? `http://localhost:5000/uploads/${p.image}` : "https://via.placeholder.com/300x220?text=No+Image"}
+                    className="card-img-top"
+                    height="220"
+                    style={{ objectFit: "cover" }}
+                    alt={p.name}
+                  />
+                  {p.stock > 0 ? (
+                    <span className="badge-stock">
+                      Còn {p.stock} sp
+                    </span>
+                  ) : (
+                    <span className="badge-stock badge-out-of-stock">
+                      Hết hàng
+                    </span>
+                  )}
+                  <div className="card-body text-center">
+                    <h5 className="card-title" style={{ 
+                      fontSize: "15px", 
+                      fontWeight: 700,
+                      minHeight: "45px",
+                      display: "-webkit-box",
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: "vertical",
+                      overflow: "hidden"
+                    }}>
+                      {p.name}
+                    </h5>
+                    <p className="text-danger fw-bold mb-2" style={{ fontSize: "18px" }}>
+                      {Number(p.price).toLocaleString("vi-VN")}đ
+                    </p>
+                    <small className="text-muted d-block mb-2">
+                      {p.category}
+                    </small>
+                  </div>
+                </Link>
+                <div className="card-body pt-0">
+                  <div className="d-flex gap-2">
+                    <Link 
+                      to={`/product/${p._id}`} 
+                      className="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center gap-1" 
+                      onClick={(e) => e.stopPropagation()}
+                      style={{ fontSize: "13px", padding: "8px" }}
+                    >
+                      🔍 Chi tiết
+                    </Link>
+                    <button 
+                      className="btn btn-success flex-fill d-flex align-items-center justify-content-center gap-1" 
+                      onClick={(e) => buyNow(e, p._id)}
+                      disabled={p.stock === 0}
+                      style={{ fontSize: "13px", padding: "8px" }}
+                    >
+                      <FiShoppingCart size={14} /> Mua
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="d-flex justify-content-between align-items-center mb-4">
+        <h2 className="d-flex align-items-center gap-2" style={{ fontWeight: 800, color: "#1a202c", margin: 0 }}>
+          <FiPackage size={28} /> Danh sách sản phẩm
+        </h2>
+        <span style={{
+          background: "linear-gradient(135deg, #667eea, #764ba2)",
+          color: "#fff", padding: "6px 16px", borderRadius: "20px",
+          fontSize: "13px", fontWeight: 600
+        }}>{filteredProducts.length} sản phẩm</span>
+      </div>
+
+      <div className="row">
+        {currentProducts.map(p => (
+          <div className="col-md-3 mb-4" key={p._id}>
+            <div className="card h-100" style={{ cursor: "pointer" }}>
+              <Link to={`/product/${p._id}`} style={{ textDecoration: "none", color: "inherit" }}>
+                <img
+                  src={p.image ? `http://localhost:5000/uploads/${p.image}` : "https://via.placeholder.com/300x220?text=No+Image"}
+                  className="card-img-top"
+                  height="220"
+                  style={{ objectFit: "cover" }}
+                  alt={p.name}
+                />
+                <div className="card-body text-center">
+                  <h5 className="card-title">{p.name}</h5>
+                  <p className="text-danger fw-bold">{Number(p.price).toLocaleString("vi-VN")}đ</p>
+                </div>
+              </Link>
+              <div className="card-body pt-0 text-center">
+                <div className="d-flex gap-2">
+                  <Link to={`/product/${p._id}`} className="btn btn-outline-primary flex-fill d-flex align-items-center justify-content-center gap-1" onClick={(e) => e.stopPropagation()}>
+                    🔍 Xem chi tiết
+                  </Link>
+                  <button className="btn btn-success flex-fill d-flex align-items-center justify-content-center gap-1" onClick={(e) => buyNow(e, p._id)}>
+                    <FiShoppingCart size={16} /> Mua hàng
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {pageCount > 1 && (
+        <ReactPaginate
+          previousLabel="← Trước"
+          nextLabel="Sau →"
+          breakLabel="..."
+          pageCount={pageCount}
+          marginPagesDisplayed={1}
+          pageRangeDisplayed={3}
+          onPageChange={handlePageClick}
+          forcePage={currentPage}
+          containerClassName="pagination-container"
+          activeClassName="selected"
+          disabledClassName="disabled"
+          previousClassName="previous"
+          nextClassName="next"
+        />
+      )}
+    </div>
+  );
+}
+export default ProductList;

@@ -1,0 +1,49 @@
+
+
+
+.container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 2vw;
+}
+
+.card {
+  background: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 24px;
+  margin-bottom: 24px;
+  transition: box-shadow .2s, transform .2s;
+}
+.card:hover {
+  box-shadow: 0 8px 32px rgba(30,130,76,0.18);
+  transform: translateY(-4px) scale(1.02);
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  background: var(--light-bg);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--accent-color);
+  border-radius: 8px;
+}
+
+@media (max-width: 991px) {
+  .container {
+    max-width: 98vw;
+    padding: 0 1vw;
+  }
+  .card {
+    padding: 12px;
+  }
+}
+@media (max-width: 600px) {
+  body {
+    font-size: 0.95rem;
+  }
+  .container {
+    padding: 0 0.5vw;
+  }
+}
+/* Đã xóa nội dung để khôi phục style gốc */
