@@ -4,6 +4,7 @@ import axiosClient from '../api/axiosClient';
 import CountdownTimer from '../components/CountdownTimer';
 import { toast } from 'react-toastify';
 import { useQueryClient } from '@tanstack/react-query';
+import { getImageUrl } from '../utils/helpers';
 import './FlashSale.css';
 
 const FlashSale = () => {
@@ -127,7 +128,7 @@ const FlashSaleCard = ({ flashSale, isUpcoming, onExpire }) => {
 
       <div className="product-image">
         <img 
-          src={product.image ? `http://localhost:5002/uploads/${product.image}` : 'https://via.placeholder.com/150x150?text=No+Image'} 
+          src={getImageUrl(product.image) || 'https://via.placeholder.com/150x150?text=No+Image'} 
           alt={product.name}
         />
         {!isUpcoming && remaining <= 10 && (

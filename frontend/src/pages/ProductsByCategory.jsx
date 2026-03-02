@@ -3,6 +3,7 @@ import { useSearchParams, Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import { FiShoppingCart, FiHeart } from "react-icons/fi";
 import { toast } from "react-toastify";
+import { getImageUrl } from "../utils/helpers";
 import "../components/ProductCard.css";
 
 function ProductsByCategory() {
@@ -131,7 +132,7 @@ function ProductsByCategory() {
                       <div className="product-badge">-{product.discount.value}%</div>
                     )}
                     <img
-                      src={product.image ? `http://localhost:5002/uploads/${product.image}` : 'https://via.placeholder.com/300x300?text=No+Image'}
+                      src={getImageUrl(product.image) || 'https://via.placeholder.com/300x300?text=No+Image'}
                       className="product-image"
                       alt={product.name}
                     />

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import axiosClient from "../api/axiosClient";
 import { toast } from "react-toastify";
+import { getImageUrl } from "../utils/helpers";
 
 function Order() {
   const navigate = useNavigate();
@@ -176,7 +177,7 @@ function Order() {
                   {cart.map(item => (
                     <div key={item._id} className="d-flex mb-3 pb-3 border-bottom">
                       <img 
-                        src={item.product?.image ? `http://localhost:5002/uploads/${item.product.image}` : '/placeholder.jpg'} 
+                        src={getImageUrl(item.product?.image) || '/placeholder.jpg'} 
                         alt={item.product?.name}
                         style={{width: '60px', height: '60px', objectFit: 'cover', borderRadius: '8px'}}
                       />

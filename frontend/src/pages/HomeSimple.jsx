@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import axiosClient from "../api/axiosClient";
 import { FiShoppingBag, FiTruck, FiShield, FiGift, FiArrowRight } from "react-icons/fi";
+import { getImageUrl } from "../utils/helpers";
 
 function HomeSimple() {
   const { data: productsData, isLoading } = useQuery({
@@ -339,7 +340,7 @@ function HomeSimple() {
                     marginBottom: '12px'
                   }}>
                     <img
-                      src={fs.product.image ? `http://localhost:5002/uploads/${fs.product.image}` : 'https://via.placeholder.com/300x300?text=No+Image'}
+                      src={getImageUrl(fs.product.image) || 'https://via.placeholder.com/300x300?text=No+Image'}
                       alt={fs.product.name}
                       style={{
                         position: 'absolute',
@@ -446,7 +447,7 @@ function HomeSimple() {
                     background: '#f7fafc'
                   }}>
                     <img
-                      src={product.image ? `http://localhost:5002/uploads/${product.image}` : 'https://via.placeholder.com/300x300?text=No+Image'}
+                      src={getImageUrl(product.image) || 'https://via.placeholder.com/300x300?text=No+Image'}
                       alt={product.name}
                       style={{
                         position: 'absolute',

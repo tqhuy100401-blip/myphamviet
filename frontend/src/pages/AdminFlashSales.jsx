@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import axiosClient from '../api/axiosClient';
 import CountdownTimer from '../components/CountdownTimer';
+import { getImageUrl } from '../utils/helpers';
 import './AdminFlashSales.css';
 
 const AdminFlashSales = () => {
@@ -380,7 +381,7 @@ const FlashSaleAdminCard = ({ flashSale, onEdit, onDelete }) => {
 
       <div className="product-row">
         <img 
-          src={product.image ? `http://localhost:5002/uploads/${product.image}` : '/placeholder.jpg'} 
+          src={getImageUrl(product.image) || '/placeholder.jpg'} 
           alt={product.name}
           onError={(e) => e.target.src = '/placeholder.jpg'}
         />

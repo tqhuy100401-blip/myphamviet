@@ -6,6 +6,7 @@ import ReactPaginate from "react-paginate";
 import { FiShoppingCart, FiPackage, FiSearch, FiFilter, FiX, FiStar } from "react-icons/fi";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { addToGuestCart } from "../utils/cartHelper";
+import { getImageUrl } from "../utils/helpers";
 import "../components/ProductCardButtons.css";
 
 const ITEMS_PER_PAGE = 12;
@@ -855,7 +856,7 @@ function ProductList() {
                 <Link to={`/products/${p._id}`} style={{ textDecoration: "none", color: "inherit", flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
                   <div className="product-image-wrapper" style={{ position: "relative" }}>
                       <img
-                        src={p.image ? `http://localhost:5002/uploads/${p.image}` : "https://via.placeholder.com/300x220?text=No+Image"}
+                        src={getImageUrl(p.image) || "https://via.placeholder.com/300x220?text=No+Image"}
                         className="card-img-top"
                         height="220"
                         style={{ objectFit: "cover" }}

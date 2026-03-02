@@ -9,6 +9,7 @@ import {
   updateGuestCartQuantity, 
   clearGuestCart 
 } from "../utils/cartHelper";
+import { getImageUrl } from "../utils/helpers";
 
 const modalOverlay = {
   position: "fixed", top: 0, left: 0, right: 0, bottom: 0,
@@ -325,7 +326,7 @@ function Cart() {
                   </td>
                   <td className="py-3 px-3">
                     <img
-                      src={i.product?.image ? `http://localhost:5002/uploads/${i.product.image}` : 'https://via.placeholder.com/60x60?text=No+Image'}
+                      src={getImageUrl(i.product?.image) || 'https://via.placeholder.com/60x60?text=No+Image'}
                       alt={i.product?.name}
                       style={{
                         width: "56px", height: "56px", objectFit: "cover",
@@ -555,7 +556,7 @@ function Cart() {
                     style={{ fontSize: "13px", color: "#4a5568" }}>
                     <div className="d-flex align-items-center gap-2">
                       <img
-                        src={i.product?.image ? `http://localhost:5002/uploads/${i.product.image}` : "https://via.placeholder.com/30x30?text=No+Image"}
+                        src={getImageUrl(i.product?.image) || "https://via.placeholder.com/30x30?text=No+Image"}
                         width="30" height="30"
                         style={{ objectFit: "cover", borderRadius: "6px" }}
                         alt={i.product?.name}

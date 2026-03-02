@@ -2,6 +2,7 @@ import { useState } from "react";
 import axiosClient from "../api/axiosClient";
 import { toast } from "react-toastify";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { getImageUrl } from "../utils/helpers";
 
 function AdminProduct() {
   // State form thêm
@@ -133,7 +134,7 @@ function AdminProduct() {
             <tr key={p._id}>
               <td>
                 <img
-                  src={p.image ? `http://localhost:5002/uploads/${p.image}` : "https://via.placeholder.com/50"}
+                  src={getImageUrl(p.image) || "https://via.placeholder.com/50"}
                   width="50" height="50"
                   style={{ objectFit: "cover", borderRadius: "4px" }}
                   alt={p.name}
@@ -229,7 +230,7 @@ function AdminProduct() {
                     <div className="text-center mb-3">
                       <p className="text-muted mb-1" style={{ fontSize: "0.85rem" }}>Ảnh hiện tại:</p>
                       <img
-                        src={`http://localhost:5002/uploads/${editCurrentImage}`}
+                        src={getImageUrl(editCurrentImage)}
                         alt="current"
                         style={{ width: 120, height: 120, objectFit: "cover", borderRadius: "12px", border: "2px solid #e2e8f0" }}
                       />

@@ -5,6 +5,7 @@ import { toast } from "react-toastify";
 import { FiShoppingCart, FiArrowLeft, FiTag, FiBox, FiStar, FiEdit2, FiTrash2 } from "react-icons/fi";
 import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { addToGuestCart } from "../utils/cartHelper";
+import { getImageUrl } from "../utils/helpers";
 
 function ProductDetail() {
   const { id } = useParams();
@@ -181,7 +182,7 @@ function ProductDetail() {
       <div className="row">
         <div className="col-md-5">
           <img
-            src={product.image ? `http://localhost:5002/uploads/${product.image}` : "https://via.placeholder.com/400x400?text=No+Image"}
+            src={getImageUrl(product.image) || "https://via.placeholder.com/400x400?text=No+Image"}
             className="img-fluid rounded shadow"
             style={{ maxHeight: "400px", objectFit: "cover", width: "100%" }}
             alt={product.name}
