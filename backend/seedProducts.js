@@ -8,45 +8,110 @@ const sampleProducts = [
     price: 850000,
     category: "Trang điểm",
     brand: "Dior",
-    description: "Son môi Dior Rouge 999 màu đỏ truyền thống, lâu trôi, dưỡng môi",
+    description: "Son môi Dior Rouge 999 màu đỏ truyền thống, lâu trôi, dưỡng môi. Công thức mới giúp môi mềm mịn, không khô.",
     image: "1771386903965.jpg",
-    stock: 50
+    stock: 50,
+    rating: 4.8,
+    numReviews: 125
   },
   {
     name: "Kem chống nắng La Roche-Posay SPF50",
     price: 450000,
     category: "Chăm sóc da",
     brand: "La Roche-Posay",
-    description: "Kem chống nắng cho da nhạy cảm, không gây nhờn, SPF50+ PA++++",
+    description: "Kem chống nắng cho da nhạy cảm, không gây nhờn, SPF50+ PA++++. Bảo vệ da khỏi tia UV hiệu quả.",
     image: "1770212691288.webp",
-    stock: 100
+    stock: 100,
+    rating: 4.9,
+    numReviews: 230
   },
   {
     name: "Serum Vitamin C The Ordinary",
     price: 320000,
     category: "Chăm sóc da",
     brand: "The Ordinary",
-    description: "Serum Vitamin C giúp làm sáng da, mờ thâm nám hiệu quả",
+    description: "Serum Vitamin C giúp làm sáng da, mờ thâm nám hiệu quả. Phù hợp mọi loại da.",
     image: "1770470008414.webp",
-    stock: 80
+    stock: 80,
+    rating: 4.6,
+    numReviews: 189
   },
   {
     name: "Nước hoa Chanel No.5",
     price: 2500000,
     category: "Nước hoa",
     brand: "Chanel",
-    description: "Nước hoa Chanel No.5 hương thơm sang trọng, quyến rũ",
+    description: "Nước hoa Chanel No.5 hương thơm sang trọng, quyến rũ. Mùi hương cổ điển của phụ nữ hiện đại.",
     image: "1770470010019.webp",
-    stock: 30
+    stock: 30,
+    rating: 5.0,
+    numReviews: 456
   },
   {
     name: "Phấn phủ Innisfree No Sebum",
     price: 180000,
     category: "Trang điểm",
     brand: "Innisfree",
-    description: "Phấn phủ kiềm dầu hiệu quả, giúp da mịn màng cả ngày",
+    description: "Phấn phủ kiềm dầu hiệu quả, giúp da mịn màng cả ngày. Không gây bít tắc lỗ chân lông.",
     image: "1770470010258.webp",
-    stock: 120
+    stock: 120,
+    rating: 4.7,
+    numReviews: 312
+  },
+  {
+    name: "Sữa rửa mặt CeraVe Foaming",
+    price: 280000,
+    category: "Chăm sóc da",
+    brand: "CeraVe",
+    description: "Sữa rửa mặt tạo bọt nhẹ nhàng, làm sạch sâu mà không làm khô da. Chứa ceramides giúp phục hồi da.",
+    image: "1770470008414.webp",
+    stock: 95,
+    rating: 4.5,
+    numReviews: 178
+  },
+  {
+    name: "Cushion LANEIGE BB Neo",
+    price: 680000,
+    category: "Trang điểm",
+    brand: "LANEIGE",
+    description: "Phấn nước cushion che phủ tốt, tự nhiên, lâu trôi. Chứa dưỡng chất giúp dưỡng ẩm cho da.",
+    image: "1771386903965.jpg",
+    stock: 60,
+    rating: 4.8,
+    numReviews: 267
+  },
+  {
+    name: "Mặt nạ Mediheal N.M.F Aquaring",
+    price: 35000,
+    category: "Chăm sóc da",
+    brand: "Mediheal",
+    description: "Mặt nạ giấy cấp ẩm chuyên sâu, phục hồi da khô. Sử dụng 2-3 lần/tuần cho làn da căng mọng.",
+    image: "1770470008414.webp",
+    stock: 200,
+    rating: 4.6,
+    numReviews: 445
+  },
+  {
+    name: "Xịt khoáng Avène Thermal Water",
+    price: 320000,
+    category: "Chăm sóc da",
+    brand: "Avène",
+    description: "Nước khoáng xịt dịu nhẹ, làm dịu da nhạy cảm, cân bằng độ ẩm. Có thể dùng mọi lúc trong ngày.",
+    image: "1770212691288.webp",
+    stock: 75,
+    rating: 4.7,
+    numReviews: 198
+  },
+  {
+    name: "Mascara Maybelline Lash Sensational",
+    price: 220000,
+    category: "Trang điểm",
+    brand: "Maybelline",
+    description: "Mascara giúp mi dài, cong vút, không lem. Công thức không thấm nước, giữ được cả ngày.",
+    image: "1770470010258.webp",
+    stock: 85,
+    rating: 4.4,
+    numReviews: 334
   }
 ];
 
