@@ -11,7 +11,7 @@ exports.createProduct = catchAsync(async (req, res, next) => {
     description: req.body.description,
     category: req.body.category,
     stock: req.body.stock,
-    image: req.file ? req.file.filename : null
+    image: req.file ? (req.file.path || req.file.filename) : null
   });
 
   await product.save();
@@ -127,7 +127,7 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
     stock: req.body.stock,
   };
   
-  if (req.file) updateData.image = req.file.filename;
+  if (req.file) updateData.image = req.file.path || req.file.filename;
   
   if (req.body.discount) {
     try {
