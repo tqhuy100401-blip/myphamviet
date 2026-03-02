@@ -44,7 +44,7 @@ function AdminProduct() {
     mutationFn: (formData) => axiosClient.post("/products", formData),
     onSuccess: () => {
       toast.success("✅ Thêm sản phẩm thành công!");
-      setName(""); setPrice(""); setDescription(""); setCategory(""); setStock(""); setImage(null);
+      setName(""); setPrice(""); setDescription(""); setCategory(""); setStock(""); setImage(null); setImageUrl("");
       setShowAddModal(false);
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
@@ -208,7 +208,28 @@ function AdminProduct() {
                     </div>
                     <div className="col-12">
                       <label className="form-label fw-semibold">Hình ảnh sản phẩm</label>
-                      <input className="form-control" type="file" accept="image/*" onChange={e => setImage(e.target.files[0])} />
+                      <div className="mb-2">
+                        <input 
+                          className="form-control mb-2" 
+                          type="text" 
+                          placeholder="Nhập URL ảnh (ví dụ: https://example.com/image.jpg)"
+                          value={imageUrl}
+                          onChange={e => {
+                            setImageUrl(e.target.value);
+                            setImage(null); // Clear file nếu nhập URL
+                          }}
+                        />
+                        <div className="text-center text-muted my-1" style={{fontSize: "0.85rem"}}>- HOẶC -</div>
+                        <input 
+                          className="form-control" 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={e => {
+                            setImage(e.target.files[0]);
+                            setImageUrl(""); // Clear URL nếu chọn file
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
