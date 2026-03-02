@@ -5,14 +5,20 @@ const { clearCacheByPattern } = require("../middlewares/cache.middleware");
 
 // Thêm sản phẩm
 exports.createProduct = catchAsync(async (req, res, next) => {
+  console.log('📦 CREATE PRODUCT - req.body:', req.body);
+  console.log('📦 CREATE PRODUCT - req.file:', req.file);
+  
   let imageValue = null;
   
-  if (req.body.imageUrl) {
-    // Nếu có URL ảnh, dùng trực tiếp
-    imageValue = req.body.imageUrl;
-  } else if (req.file) {
-    // Nếu upload file
+  // Kiểm tra nếu có file upload
+  if (req.file) {
     imageValue = req.file.path || req.file.filename;
+    console.log('📁 Using uploaded file:', imageValue);
+  } 
+  // Nếu không có file, kiểm tra xem image field có phải URL không
+  else if (req.body.image && req.body.image.startsWith('http')) {
+    imageValue = req.body.image;
+    console.log('✅ Using URL from image field:', imageValue);
   }
   
   const product = new Product({
@@ -137,10 +143,11 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
     stock: req.body.stock,
   };
   
-  if (req.body.imageUrl) {
-    updateData.image = req.body.imageUrl;
-  } else if (req.file) {
+  if (req.file) {
     updateData.image = req.file.path || req.file.filename;
+  } else if (req.body.image && req.body.image.startsWith('http')) {
+    updateData.image = req.body.image;
+    console.log('✅ UPDATE - Using URL from image field:', req.body.image);
   }
   
   if (req.body.discount) {

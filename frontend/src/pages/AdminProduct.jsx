@@ -70,17 +70,41 @@ function AdminProduct() {
   const handleAdd = () => {
     if (!name || !price) return toast.warn("Vui lòng nhập tên và giá!");
     if (!stock || isNaN(stock) || Number(stock) < 1) return toast.warn("Vui lòng nhập số lượng tồn kho hợp lệ!");
+    
+    console.log('🔍 Form data:', { name, price, imageUrl, image });
+    
+    // Nếu chỉ có URL (không có file), gửi JSON
+    if (imageUrl && !image) {
+      const jsonData = {
+        name,
+        price,
+        description,
+        category,
+        stock,
+        image: imageUrl  // Gửi URL trực tiếp vào field "image"
+      };
+      console.log('✅ Sending JSON with URL:', jsonData);
+      addMutation.mutate(jsonData);
+      return;
+    }
+    
+    // Nếu có file, dùng FormData
     const formData = new FormData();
     formData.append("name", name);
     formData.append("price", price);
     formData.append("description", description);
     formData.append("category", category);
     formData.append("stock", stock);
-    if (imageUrl) {
-      formData.append("imageUrl", imageUrl);
-    } else if (image) {
+    if (image) {
+      console.log('📁 Appending image file:', image.name);
       formData.append("image", image);
     }
+    
+    // Log FormData
+    for (let pair of formData.entries()) {
+      console.log('📦 FormData:', pair[0], pair[1]);
+    }
+    
     addMutation.mutate(formData);
   };
 
@@ -99,15 +123,30 @@ function AdminProduct() {
 
   const handleUpdate = () => {
     if (!editName || !editPrice) return toast.warn("Vui lòng nhập tên và giá!");
+    
+    // Nếu chỉ có URL (không có file), gửi JSON
+    if (editImageUrl && !editImage) {
+      const jsonData = {
+        name: editName,
+        price: editPrice,
+        description: editDescription,
+        category: editCategory,
+        stock: editStock,
+        image: editImageUrl  // Gửi URL trực tiếp
+      };
+      console.log('✅ UPDATE - Sending JSON with URL:', jsonData);
+      updateMutation.mutate({ id: editId, formData: jsonData });
+      return;
+    }
+    
+    // Nếu có file hoặc không đổi ảnh, dùng FormData
     const formData = new FormData();
     formData.append("name", editName);
     formData.append("price", editPrice);
     formData.append("description", editDescription);
     formData.append("category", editCategory);
     formData.append("stock", editStock);
-    if (editImageUrl) {
-      formData.append("imageUrl", editImageUrl);
-    } else if (editImage) {
+    if (editImage) {
       formData.append("image", editImage);
     }
     updateMutation.mutate({ id: editId, formData });
