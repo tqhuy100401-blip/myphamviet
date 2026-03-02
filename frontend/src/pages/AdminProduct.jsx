@@ -12,6 +12,7 @@ function AdminProduct() {
   const [category, setCategory] = useState("");
   const [stock, setStock] = useState("");
   const [image, setImage] = useState(null);
+  const [imageUrl, setImageUrl] = useState("");
 
   // State form sửa (modal)
   const [showEditModal, setShowEditModal] = useState(false);
@@ -23,6 +24,7 @@ function AdminProduct() {
   const [editCategory, setEditCategory] = useState("");
   const [editStock, setEditStock] = useState("");
   const [editImage, setEditImage] = useState(null);
+  const [editImageUrl, setEditImageUrl] = useState("");
   const [editCurrentImage, setEditCurrentImage] = useState("");
 
   const queryClient = useQueryClient();
@@ -74,7 +76,11 @@ function AdminProduct() {
     formData.append("description", description);
     formData.append("category", category);
     formData.append("stock", stock);
-    if (image) formData.append("image", image);
+    if (imageUrl) {
+      formData.append("imageUrl", imageUrl);
+    } else if (image) {
+      formData.append("image", image);
+    }
     addMutation.mutate(formData);
   };
 
@@ -86,6 +92,7 @@ function AdminProduct() {
     setEditCategory(p.category || "");
     setEditStock(p.stock || "");
     setEditImage(null);
+    setEditImageUrl("");
     setEditCurrentImage(p.image || "");
     setShowEditModal(true);
   };
@@ -98,7 +105,11 @@ function AdminProduct() {
     formData.append("description", editDescription);
     formData.append("category", editCategory);
     formData.append("stock", editStock);
-    if (editImage) formData.append("image", editImage);
+    if (editImageUrl) {
+      formData.append("imageUrl", editImageUrl);
+    } else if (editImage) {
+      formData.append("image", editImage);
+    }
     updateMutation.mutate({ id: editId, formData });
   };
 
@@ -264,7 +275,28 @@ function AdminProduct() {
                     </div>
                     <div className="col-12">
                       <label className="form-label fw-semibold">Đổi ảnh mới (không bắt buộc)</label>
-                      <input className="form-control" type="file" accept="image/*" onChange={e => setEditImage(e.target.files[0])} />
+                      <div className="mb-2">
+                        <input 
+                          className="form-control mb-2" 
+                          type="text" 
+                          placeholder="Nhập URL ảnh (ví dụ: https://example.com/image.jpg)"
+                          value={editImageUrl}
+                          onChange={e => {
+                            setEditImageUrl(e.target.value);
+                            setEditImage(null); // Clear file nếu nhập URL
+                          }}
+                        />
+                        <div className="text-center text-muted my-1" style={{fontSize: "0.85rem"}}>- HOẶC -</div>
+                        <input 
+                          className="form-control" 
+                          type="file" 
+                          accept="image/*" 
+                          onChange={e => {
+                            setEditImage(e.target.files[0]);
+                            setEditImageUrl(""); // Clear URL nếu chọn file
+                          }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>

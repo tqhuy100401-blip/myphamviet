@@ -5,13 +5,23 @@ const { clearCacheByPattern } = require("../middlewares/cache.middleware");
 
 // Thêm sản phẩm
 exports.createProduct = catchAsync(async (req, res, next) => {
+  let imageValue = null;
+  
+  if (req.body.imageUrl) {
+    // Nếu có URL ảnh, dùng trực tiếp
+    imageValue = req.body.imageUrl;
+  } else if (req.file) {
+    // Nếu upload file
+    imageValue = req.file.path || req.file.filename;
+  }
+  
   const product = new Product({
     name: req.body.name,
     price: req.body.price,
     description: req.body.description,
     category: req.body.category,
     stock: req.body.stock,
-    image: req.file ? (req.file.path || req.file.filename) : null
+    image: imageValue
   });
 
   await product.save();
@@ -127,7 +137,11 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
     stock: req.body.stock,
   };
   
-  if (req.file) updateData.image = req.file.path || req.file.filename;
+  if (req.body.imageUrl) {
+    updateData.image = req.body.imageUrl;
+  } else if (req.file) {
+    updateData.image = req.file.path || req.file.filename;
+  }
   
   if (req.body.discount) {
     try {
