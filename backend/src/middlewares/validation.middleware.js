@@ -59,20 +59,33 @@ const productValidation = [
   
   body('price')
     .notEmpty().withMessage('Giá là bắt buộc')
-    .isFloat({ min: 0 }).withMessage('Giá phải là số dương'),
+    .custom(value => {
+      const num = Number(value);
+      if (isNaN(num) || num < 0) {
+        throw new Error('Giá phải là số dương');
+      }
+      return true;
+    }),
   
   body('description')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim()
     .isLength({ max: 2000 }).withMessage('Mô tả không quá 2000 ký tự'),
   
   body('category')
-    .optional()
+    .optional({ checkFalsy: true })
     .trim(),
   
   body('stock')
-    .optional()
-    .isInt({ min: 0 }).withMessage('Số lượng tồn kho phải là số nguyên không âm'),
+    .optional({ checkFalsy: true })
+    .custom(value => {
+      if (value === '' || value === undefined || value === null) return true;
+      const num = Number(value);
+      if (isNaN(num) || num < 0 || !Number.isInteger(num)) {
+        throw new Error('Số lượng tồn kho phải là số nguyên không âm');
+      }
+      return true;
+    }),
   
   validate
 ];

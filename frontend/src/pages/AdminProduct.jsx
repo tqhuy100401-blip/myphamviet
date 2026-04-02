@@ -48,6 +48,18 @@ function AdminProduct() {
       setShowAddModal(false);
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
+    onError: (error) => {
+      console.error('❌ Add product error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      console.error('❌ Error status:', error.response?.status);
+      console.error('❌ Full error object:', JSON.stringify(error.response, null, 2));
+      
+      // Debug alert
+      alert(`DEBUG ERROR:\nStatus: ${error.response?.status}\nMessage: ${error.response?.data?.message}\nFull: ${JSON.stringify(error.response?.data)}`);
+      
+      const errorMsg = error.response?.data?.message || error.response?.data?.errors?.[0]?.message || error.message || "Có lỗi xảy ra";
+      toast.error(`❌ ${errorMsg}`);
+    }
   });
 
   const updateMutation = useMutation({
@@ -57,6 +69,12 @@ function AdminProduct() {
       setShowEditModal(false);
       queryClient.invalidateQueries({ queryKey: ["products"] });
     },
+    onError: (error) => {
+      console.error('❌ Update product error:', error);
+      console.error('❌ Error response:', error.response?.data);
+      const errorMsg = error.response?.data?.message || error.response?.data?.errors?.[0]?.message || error.message || "Có lỗi xảy ra";
+      toast.error(`❌ ${errorMsg}`);
+    }
   });
 
   const deleteMutation = useMutation({
@@ -71,17 +89,17 @@ function AdminProduct() {
     if (!name || !price) return toast.warn("Vui lòng nhập tên và giá!");
     if (!stock || isNaN(stock) || Number(stock) < 1) return toast.warn("Vui lòng nhập số lượng tồn kho hợp lệ!");
     
-    console.log('🔍 Form data:', { name, price, imageUrl, image });
+    console.log('🔍 Form data:', { name, price, description, category, stock, imageUrl, image });
     
     // Nếu chỉ có URL (không có file), gửi JSON
     if (imageUrl && !image) {
       const jsonData = {
         name,
-        price,
-        description,
-        category,
-        stock,
-        image: imageUrl  // Gửi URL trực tiếp vào field "image"
+        price: Number(price),
+        description: description || "",
+        category: category || "",
+        stock: Number(stock),
+        image: imageUrl
       };
       console.log('✅ Sending JSON with URL:', jsonData);
       addMutation.mutate(jsonData);
@@ -91,18 +109,23 @@ function AdminProduct() {
     // Nếu có file, dùng FormData
     const formData = new FormData();
     formData.append("name", name);
-    formData.append("price", price);
-    formData.append("description", description);
-    formData.append("category", category);
-    formData.append("stock", stock);
+    formData.append("price", Number(price));
+    formData.append("description", description || "");
+    formData.append("category", category || "");
+    formData.append("stock", Number(stock));
     if (image) {
-      console.log('📁 Appending image file:', image.name);
+      console.log('📁 Appending image file:', image.name, image.type, image.size);
       formData.append("image", image);
     }
     
-    // Log FormData
+    // Log FormData (detailed)
+    console.log('📦 FormData contents:');
     for (let pair of formData.entries()) {
-      console.log('📦 FormData:', pair[0], pair[1]);
+      if (pair[1] instanceof File) {
+        console.log(`  ${pair[0]}: File(${pair[1].name}, ${pair[1].type}, ${pair[1].size} bytes)`);
+      } else {
+        console.log(`  ${pair[0]}: ${pair[1]}`);
+      }
     }
     
     addMutation.mutate(formData);

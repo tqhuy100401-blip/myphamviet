@@ -16,6 +16,19 @@ const orderSchema = new mongoose.Schema({
       quantity: {
         type: Number,
         required: true
+      },
+      // Snapshot fields to keep price/name/image at the time of order
+      price: {
+        type: Number,
+        required: true
+      },
+      name: {
+        type: String,
+        required: true
+      },
+      image: {
+        type: String,
+        default: ''
       }
     }
   ],
@@ -38,6 +51,25 @@ const orderSchema = new mongoose.Schema({
   note: {
     type: String,
     default: ""
+  },
+  coupon: {
+    type: mongoose.Schema.Types.ObjectId,
+    ref: "Coupon",
+    default: null
+  },
+  discount: {
+    type: Number,
+    default: 0
+  },
+  paymentMethod: {
+    type: String,
+    enum: ["bank_transfer", "cod"],
+    default: "cod"
+  },
+  paymentStatus: {
+    type: String,
+    enum: ["pending", "verifying", "paid", "failed"],
+    default: "pending"
   },
   status: {
     type: String,

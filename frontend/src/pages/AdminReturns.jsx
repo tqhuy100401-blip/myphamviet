@@ -178,7 +178,9 @@ function AdminReturns() {
                   <div className="d-flex gap-3 mb-3">
                     <img
                       src={returnItem.product.image 
-                        ? `http://localhost:5000/uploads/${returnItem.product.image}`
+                        ? (returnItem.product.image.startsWith('http') 
+                          ? returnItem.product.image 
+                          : `http://localhost:5002${returnItem.product.image}`)
                         : "https://via.placeholder.com/80"}
                       alt={returnItem.product.name}
                       style={{
@@ -223,6 +225,43 @@ function AdminReturns() {
                       {returnItem.description}
                     </div>
                   </div>
+
+                  {returnItem.images && returnItem.images.length > 0 && (
+                    <div className="mb-2">
+                      <strong className="small">Hình ảnh:</strong>
+                      <div className="d-flex gap-2 mt-1 flex-wrap">
+                        {returnItem.images.slice(0, 3).map((img, idx) => (
+                          <img
+                            key={idx}
+                            src={img.startsWith('http') ? img : `http://localhost:5002${img}`}
+                            alt={`return-${idx}`}
+                            style={{
+                              width: "40px",
+                              height: "40px",
+                              objectFit: "cover",
+                              borderRadius: "4px",
+                              border: "1px solid #e2e8f0"
+                            }}
+                          />
+                        ))}
+                        {returnItem.images.length > 3 && (
+                          <div style={{
+                            width: "40px",
+                            height: "40px",
+                            borderRadius: "4px",
+                            background: "#e2e8f0",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            fontSize: "10px",
+                            color: "#64748b"
+                          }}>
+                            +{returnItem.images.length - 3}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
 
                   {returnItem.type === "return" && (
                     <div className="mb-2">
@@ -272,7 +311,9 @@ function AdminReturns() {
                   <div className="col-md-4">
                     <img
                       src={selectedReturn.product.image 
-                        ? `http://localhost:5000/uploads/${selectedReturn.product.image}`
+                        ? (selectedReturn.product.image.startsWith('http') 
+                          ? selectedReturn.product.image 
+                          : `http://localhost:5002${selectedReturn.product.image}`)
                         : "https://via.placeholder.com/200"}
                       alt={selectedReturn.product.name}
                       className="img-fluid rounded"
@@ -315,6 +356,35 @@ function AdminReturns() {
                   <strong>Mô tả chi tiết:</strong>
                   <p className="text-muted">{selectedReturn.description}</p>
                 </div>
+
+                {selectedReturn.images && selectedReturn.images.length > 0 && (
+                  <div className="mb-3">
+                    <strong>Hình ảnh đính kèm:</strong>
+                    <div className="d-flex gap-2 mt-2 flex-wrap">
+                      {selectedReturn.images.map((img, idx) => (
+                        <a 
+                          key={idx}
+                          href={img.startsWith('http') ? img : `http://localhost:5002${img}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <img
+                            src={img.startsWith('http') ? img : `http://localhost:5002${img}`}
+                            alt={`return-img-${idx}`}
+                            style={{
+                              width: "100px",
+                              height: "100px",
+                              objectFit: "cover",
+                              borderRadius: "8px",
+                              border: "2px solid #e2e8f0",
+                              cursor: "pointer"
+                            }}
+                          />
+                        </a>
+                      ))}
+                    </div>
+                  </div>
+                )}
 
                 <hr />
 

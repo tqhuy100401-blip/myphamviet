@@ -79,8 +79,8 @@ app.use(compression({
 }));
 
 // Body parsing middleware
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: true, limit: '10mb' }));
+app.use(express.json({ limit: '50mb' }));
+app.use(express.urlencoded({ extended: true, limit: '50mb' }));
 
 // Sanitization middleware
 // TEMP DISABLED: express-mongo-sanitize incompatible with Express 5 req.query immutability
@@ -105,6 +105,7 @@ const authRoute = require("./routes/auth.route");
 const userRoute = require("./routes/user.route");
 const productRoute = require("./routes/product.route");
 const cartRoute = require("./routes/cart.route");
+const wishlistRoute = require("./routes/wishlist.route");
 const orderRoutes = require("./routes/order.route");
 const adminRoute = require("./routes/admin.route");
 const categoryRoute = require("./routes/category.route");
@@ -113,12 +114,15 @@ const chatRoute = require("./routes/chat.route");
 const returnRoute = require("./routes/return.route");
 const couponRoute = require("./routes/coupon.route");
 const flashsaleRoute = require("./routes/flashsale.route");
+const paymentRoute = require("./routes/payment.route");
+const notificationRoute = require("./routes/notification.route");
 
 // Routes
 app.use("/api/auth", authLimiter, authRoute);
-app.use("/api/user", userRoute);
+app.use("/api/users", userRoute);
 app.use("/api/products", productRoute);
 app.use("/api/cart", cartRoute);
+app.use("/api/wishlist", wishlistRoute);
 app.use("/api/orders", orderRoutes);
 app.use("/api/admin", adminRoute);
 app.use("/api/categories", categoryRoute);
@@ -127,6 +131,8 @@ app.use("/api/chat", chatRoute);
 app.use("/api/returns", returnRoute);
 app.use("/api/coupons", couponRoute);
 app.use("/api/flashsales", flashsaleRoute);
+app.use("/api/payment", paymentRoute);
+app.use("/api/notifications", notificationRoute);
 
 // Route test
 app.get("/", (req, res) => {
@@ -259,7 +265,7 @@ io.on("connection", (socket) => {
 // 404 handler - must be after all routes
 app.use(notFound);
 
-// Global error handler - must be last
+// Global error handler - use centralized error handler (sends safe responses in production)
 app.use(errorHandler);
 
 // Server with graceful port retry (max 3 attempts)

@@ -4,7 +4,11 @@ const User = require("../models/User");
 const Order = require("../models/Order");
 const Product = require("../models/Product");
 const authMiddleware = require("../middlewares/auth.middleware");
-const isAdmin = require("../middlewares/admin.middleware");
+const isAdmin = require("../middlewares/isAdmin");
+const adminReviewController = require("../controllers/adminReview.controller");
+// Quản lý đánh giá (admin)
+router.get("/reviews", authMiddleware, isAdmin, adminReviewController.getAllReviews);
+router.delete("/reviews/:reviewId", authMiddleware, isAdmin, adminReviewController.adminDeleteReview);
 
 // Thống kê tổng quan
 router.get("/stats", authMiddleware, isAdmin, async (req, res) => {

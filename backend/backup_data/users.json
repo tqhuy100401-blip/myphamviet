@@ -1,0 +1,31 @@
+[
+  {
+    "_id": "69a59d07ed4f303af72e35e3",
+    "name": "Admin",
+    "email": "admin@gmail.com",
+    "password": "$2b$10$rapQc06pzAuBhyd29kuOF..VA8i6UA53sVeiGH1I8spT3L3cqiqxO",
+    "role": "admin",
+    "phone": "0123456789",
+    "isVerified": true,
+    "isActive": true,
+    "loginAttempts": 0,
+    "createdAt": "2026-03-02T14:21:59.768Z",
+    "updatedAt": "2026-03-02T16:24:54.764Z",
+    "__v": 0,
+    "lastLogin": "2026-03-02T16:24:54.762Z"
+  },
+  {
+    "_id": "69a59d07ed4f303af72e35e5",
+    "name": "Nguyễn Văn A",
+    "email": "user@gmail.com",
+    "password": "$2b$10$rapQc06pzAuBhyd29kuOF..VA8i6UA53sVeiGH1I8spT3L3cqiqxO",
+    "role": "user",
+    "phone": "0987654321",
+    "isVerified": true,
+    "isActive": true,
+    "loginAttempts": 0,
+    "createdAt": "2026-03-02T14:21:59.843Z",
+    "updatedAt": "2026-03-02T14:21:59.843Z",
+    "__v": 0
+  }
+]

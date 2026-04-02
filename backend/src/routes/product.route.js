@@ -2,6 +2,7 @@ const express = require("express");
 const router = express.Router();
 const productController = require("../controllers/product.controller");
 const authMiddleware = require("../middlewares/auth.middleware");
+const isAdmin = require("../middlewares/isAdmin");
 const upload = require("../middlewares/upload.middleware");
 const { optimizeImage } = require("../middlewares/imageOptimization.middleware");
 const { productValidation, mongoIdValidation } = require("../middlewares/validation.middleware");
@@ -13,17 +14,18 @@ router.get("/:id", mongoIdValidation('id'), cacheMiddleware(600), productControl
 
 // Protected API (cần đăng nhập)
 router.post(
-  "/", 
+  "/",
   authMiddleware,
+  isAdmin,
   upload.single("image"),
-  optimizeImage,
-  productValidation,
+  // optimizeImage, // Bật nếu muốn tối ưu ảnh ở server
   productController.createProduct
 );
 
 router.put(
   "/:id", 
   authMiddleware,
+  isAdmin,
   mongoIdValidation('id'),
   upload.single("image"),
   optimizeImage,
@@ -34,6 +36,7 @@ router.put(
 router.delete(
   "/:id", 
   authMiddleware,
+  isAdmin,
   mongoIdValidation('id'),
   productController.deleteProduct
 );

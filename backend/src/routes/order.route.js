@@ -7,6 +7,8 @@ const authMiddleware = require("../middlewares/auth.middleware");
 router.post("/create", authMiddleware, orderController.createOrder);
 router.get("/my-orders", authMiddleware, orderController.getMyOrders);
 router.get("/my-orders/count", authMiddleware, orderController.getMyActiveOrdersCount);
+router.put("/cancel/:orderId", authMiddleware, orderController.cancelOrder);
+router.delete("/delete/:orderId", authMiddleware, orderController.deleteOrder);
 
 // Admin
 router.get("/", authMiddleware, orderController.getAllOrders);

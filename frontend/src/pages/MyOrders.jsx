@@ -1,178 +1,211 @@
+
+
 import axiosClient from "../api/axiosClient";
-import { useQuery } from "@tanstack/react-query";
+import { getImageUrl } from "../utils/helpers";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { toast } from "react-toastify";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import "./MyOrders.css";
+
+// Hàm chuyển đổi trạng thái đơn hàng sang text và màu sắc
+function statusLabel(status) {
+  switch (status) {
+    case "pending":
+      return { text: "Chờ xác nhận", color: "#f59e42" };
+    case "confirmed":
+      return { text: "Đã xác nhận", color: "#3b82f6" };
+    case "shipping":
+      return { text: "Đang giao", color: "#6366f1" };
+    case "delivered":
+      return { text: "Đã giao hàng", color: "#22c55e" };
+    case "received":
+      return { text: "Đã nhận hàng", color: "#16a34a" };
+    case "cancelled":
+      return { text: "Đã hủy", color: "#ef4444" };
+    default:
+      return { text: status, color: "#888" };
+  }
+}
 
 function MyOrders() {
+  const queryClient = useQueryClient();
+  const navigate = useNavigate();
+  const [cancelling, setCancelling] = useState(null);
+  const [deleting, setDeleting] = useState(null);
+
   const { data: orders = [], isLoading } = useQuery({
     queryKey: ["my-orders"],
     queryFn: () => axiosClient.get("/orders/my-orders").then(res => res.data),
   });
 
-  const statusLabel = (status) => {
-    const map = {
-      "pending": { text: "Chờ xử lý", color: "bg-warning text-dark" },
-      "confirmed": { text: "Đã xác nhận", color: "bg-info" },
-      "shipping": { text: "Đang giao hàng", color: "bg-primary" },
-      "delivered": { text: "Đã giao thành công", color: "bg-success" },
-      "cancelled": { text: "Đã hủy", color: "bg-danger" }
-    };
-    return map[status] || { text: status, color: "bg-secondary" };
+  // Xử lý hủy đơn hàng
+  const handleCancelOrder = async (orderId) => {
+    if (!window.confirm("Bạn có chắc muốn hủy đơn hàng này?")) return;
+    setCancelling(orderId);
+    try {
+      await axiosClient.put(`/orders/cancel/${orderId}`);
+      toast.success("Đã hủy đơn hàng thành công!");
+      queryClient.invalidateQueries(["my-orders"]);
+    } catch (err) {
+      toast.error("Có lỗi khi hủy đơn hàng!");
+    } finally {
+      setCancelling(null);
+    }
   };
 
-  if (isLoading) return <p className="container mt-4">Đang tải...</p>;
+  // Xử lý xóa đơn hàng
+  const handleDeleteOrder = async (orderId) => {
+    if (!window.confirm("Bạn có chắc muốn xóa đơn hàng này?")) return;
+    setDeleting(orderId);
+    try {
+      await axiosClient.delete(`/orders/${orderId}`);
+      toast.success("Đã xóa đơn hàng thành công!");
+      queryClient.invalidateQueries(["my-orders"]);
+    } catch (err) {
+      toast.error("Có lỗi khi xóa đơn hàng!");
+    } finally {
+      setDeleting(null);
+    }
+  };
+
+  if (isLoading) {
+    return <div className="text-center" style={{padding: '120px 0'}}>Đang tải đơn hàng...</div>;
+  }
+
+  // Kiểm tra không có đơn hàng
+  if (!orders || (Array.isArray(orders) && orders.length === 0)) {
+    return (
+      <div className="my-orders-list">
+        <h2 style={{marginBottom: 18, fontWeight: 700, color: '#4f46e5'}}>📋 Lịch sử đơn hàng</h2>
+        <div className="text-center" style={{paddingTop: '120px', paddingBottom: '80px', minHeight: '40vh', background: 'rgba(255,255,255,0.95)'}}>
+          <div style={{fontSize: '72px', marginBottom: '18px'}}>📦</div>
+          <h4 style={{fontWeight: 800, color: '#5a43e4', marginBottom: 10, fontSize: 26}}>Không có đơn hàng nào</h4>
+          <p style={{color: '#888', fontSize: 17}}>Bạn chưa có đơn hàng nào. Khi bạn đặt hàng, thông tin sẽ hiển thị tại đây.</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
-    <div className="container mt-4">
-      <h2 className="mb-4">📋 Lịch sử đơn hàng</h2>
-
-      {orders.length === 0 ? (
-        <div className="text-center">
-          <p className="text-muted">Bạn chưa có đơn hàng nào.</p>
-        </div>
-      ) : (
-        orders.map(order => {
-          const st = statusLabel(order.status);
-          return (
-            <div key={order._id} className="card mb-4 shadow-sm">
-              <div className="card-header d-flex justify-content-between align-items-center">
-                <div>
-                  <strong>Đơn hàng #{order._id.slice(-8).toUpperCase()}</strong>
-                  <span className={`badge ${st.color} ms-2`}>{st.text}</span>
-                </div>
-                <small className="text-muted">
-                  🕐 {new Date(order.createdAt).toLocaleString("vi-VN")}
-                </small>
-              </div>
-
-              <div className="card-body">
-                {/* Thông tin giao hàng */}
-                <div className="row mb-3">
-                  <div className="col-md-4">
-                    <p className="mb-1"><strong>👤 Người nhận:</strong></p>
-                    <p>{order.customerName || "N/A"}</p>
-                  </div>
-                  <div className="col-md-4">
-                    <p className="mb-1"><strong>📞 SĐT:</strong></p>
-                    <p>{order.phone || "N/A"}</p>
-                  </div>
-                  <div className="col-md-4">
-                    <p className="mb-1"><strong>📍 Địa chỉ:</strong></p>
-                    <p>{order.shippingAddress}</p>
-                  </div>
-                </div>
-
-                {order.note && (
-                  <p className="text-muted"><strong>📝 Ghi chú:</strong> {order.note}</p>
-                )}
-
-                {/* Chi tiết sản phẩm */}
-                <table className="table table-sm">
-                  <thead>
-                    <tr>
-                      <th>Hình</th>
-                      <th>Sản phẩm</th>
-                      <th>Số lượng</th>
-                      <th>Đơn giá</th>
-                      <th>Thành tiền</th>
+    <div className="my-orders-list">
+      <h2 style={{marginBottom: 18, fontWeight: 700, color: '#4f46e5'}}>📋 Lịch sử đơn hàng</h2>
+      {orders.map(order => {
+        const st = statusLabel(order.status);
+        return (
+          <div key={order._id} className="my-order-card">
+            <div className="my-order-header">
+              <span className="my-order-id">Đơn #{order._id.slice(-8).toUpperCase()}</span>
+              <span className="my-order-status" style={{background: st.color + '22', color: st.color}}>{st.text}</span>
+              <span style={{fontSize: '0.98rem', color: '#888'}}>🕐 {new Date(order.createdAt).toLocaleString('vi-VN')}</span>
+            </div>
+            <div className="my-order-body">
+              <div className="my-order-info"><b>👤 Người nhận:</b> {order.customerName || 'N/A'}</div>
+              <div className="my-order-info"><b>📞 SĐT:</b> {order.phone || 'N/A'}</div>
+              <div className="my-order-info"><b>📍 Địa chỉ:</b> {order.shippingAddress}</div>
+              {order.note && <div className="my-order-info" style={{color:'#888'}}><b>📝 Ghi chú:</b> {order.note}</div>}
+              <table className="my-order-products" style={{width:'100%',marginTop:8}}>
+                <thead>
+                  <tr style={{background:'#f7fafc'}}>
+                    <th>Hình</th><th>Sản phẩm</th><th>SL</th><th>Đơn giá</th><th>Thành tiền</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {order.items.map((item, idx) => (
+                    <tr key={idx}>
+                      <td>
+                        <img
+                          src={item.product?.image ? getImageUrl(item.product.image) : "https://via.placeholder.com/40"}
+                          width="40" height="40"
+                          style={{ objectFit: "cover", borderRadius: "4px" }}
+                          alt={item.product?.name}
+                        />
+                      </td>
+                      <td style={{fontSize: '13px'}}>{item.product?.name || "Sản phẩm đã xóa"}</td>
+                      <td style={{fontSize: '13px'}}>{item.quantity}</td>
+                      <td style={{fontSize: '13px'}}>{Number(item.product?.price || 0).toLocaleString('vi-VN')}đ</td>
+                      <td className="fw-bold" style={{fontSize: '13px'}}>
+                        {((item.product?.price || 0) * item.quantity).toLocaleString('vi-VN')}đ
+                      </td>
                     </tr>
-                  </thead>
-                  <tbody>
-                    {order.items.map((item, idx) => (
-                      <tr key={idx}>
-                        <td>
-                          <img
-                            src={item.product?.image ? `http://localhost:5000/uploads/${item.product.image}` : "https://via.placeholder.com/40"}
-                            width="40" height="40"
-                            style={{ objectFit: "cover", borderRadius: "4px" }}
-                            alt={item.product?.name}
-                          />
-                        </td>
-                        <td>{item.product?.name || "Sản phẩm đã xóa"}</td>
-                        <td>{item.quantity}</td>
-                        <td>{Number(item.product?.price || 0).toLocaleString("vi-VN")}đ</td>
-                        <td className="fw-bold">
-                          {((item.product?.price || 0) * item.quantity).toLocaleString("vi-VN")}đ
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-
-                <div className="text-end">
-                  <h5>
-                    Tổng thanh toán: <span className="text-danger">{Number(order.totalPrice).toLocaleString("vi-VN")}đ</span>
-                  </h5>
-                </div>
-
-                {/* Timeline trạng thái - lịch sử thực tế */}
-                <div className="mt-3">
-                  <p className="fw-bold mb-2">📜 Lịch sử đơn hàng:</p>
-                  {order.statusHistory && order.statusHistory.length > 0 ? (
-                    <div style={{ position: "relative", paddingLeft: "28px" }}>
-                      {/* Đường kẻ dọc */}
-                      <div style={{
-                        position: "absolute", left: "10px", top: "6px", bottom: "6px",
-                        width: "2px", background: "#e2e8f0", borderRadius: "2px"
-                      }} />
-                      {order.statusHistory.map((h, idx) => {
-                        const isLast = idx === order.statusHistory.length - 1;
-                        const stepSt = statusLabel(h.status);
-                        return (
-                          <div key={idx} className="d-flex align-items-start mb-3" style={{ position: "relative" }}>
-                            {/* Chấm tròn */}
-                            <div style={{
-                              position: "absolute", left: "-22px", top: "4px",
-                              width: "14px", height: "14px", borderRadius: "50%",
-                              background: isLast ? (h.status === "cancelled" ? "#e53e3e" : "#48BB78") : "#cbd5e0",
-                              border: isLast ? "3px solid " + (h.status === "cancelled" ? "#feb2b2" : "#c6f6d5") : "2px solid #e2e8f0",
-                              zIndex: 1
-                            }} />
-                            <div>
-                              <div className="d-flex align-items-center gap-2">
-                                <span className={`badge ${stepSt.color}`} style={{ fontSize: "0.75rem" }}>{stepSt.text}</span>
-                                {isLast && <span className="badge bg-dark" style={{ fontSize: "0.65rem" }}>Hiện tại</span>}
-                              </div>
-                              <small className="text-muted d-block" style={{ fontSize: "0.8rem" }}>
-                                🕐 {new Date(h.time).toLocaleString("vi-VN")}
-                              </small>
-                              {h.note && <small className="text-muted">{h.note}</small>}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  ) : (
-                    /* Fallback timeline tĩnh nếu đơn cũ chưa có statusHistory */
-                    <div className="d-flex gap-2 flex-wrap">
-                      {["pending", "confirmed", "shipping", "delivered"].map((step, idx) => {
-                        const steps = ["pending", "confirmed", "shipping", "delivered"];
-                        const currentIdx = steps.indexOf(order.status);
-                        const isActive = idx <= currentIdx && order.status !== "cancelled";
-                        const labels = ["Chờ xử lý", "Xác nhận", "Đang giao", "Đã giao"];
-                        return (
-                          <div key={step} className="text-center" style={{ flex: 1 }}>
-                            <div
-                              className={`rounded-circle d-inline-flex align-items-center justify-content-center ${isActive ? "bg-success text-white" : "bg-light text-muted border"}`}
-                              style={{ width: "36px", height: "36px", fontSize: "14px" }}
-                            >
-                              {isActive ? "✓" : idx + 1}
-                            </div>
-                            <small className="d-block mt-1" style={{ fontSize: "11px" }}>{labels[idx]}</small>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  )}
-                  {order.status === "cancelled" && (
-                    <p className="text-danger text-center mt-2 fw-bold">❌ Đơn hàng đã bị hủy</p>
-                  )}
-                </div>
+                  ))}
+                </tbody>
+              </table>
+              <div className="my-order-actions">
+                <span className="my-order-total">Tổng: {Number(order.totalPrice).toLocaleString('vi-VN')}đ</span>
+                {order.status === 'pending' && (
+                  <button
+                    className="btn btn-danger btn-sm"
+                    onClick={() => handleCancelOrder(order._id)}
+                    disabled={cancelling === order._id}
+                    style={{ minWidth: '120px' }}
+                  >
+                    {cancelling === order._id ? "Đang hủy..." : "❌ Hủy đơn hàng"}
+                  </button>
+                )}
+                {order.status === 'delivered' && (
+                  <button
+                    className="btn btn-sm"
+                    onClick={() => navigate(`/return-request/${order._id}`)}
+                    style={{
+                      background: 'linear-gradient(135deg, #f6ad55 0%, #ed8936 100%)',
+                      color: '#fff',
+                      border: 'none',
+                      fontWeight: 600,
+                      minWidth: '140px',
+                      boxShadow: '0 2px 8px rgba(237, 137, 54, 0.3)'
+                    }}
+                  >
+                    🔄 Đổi trả hàng
+                  </button>
+                )}
+                {order.status === 'delivered' && (
+                  <button
+                    className="btn btn-outline-primary btn-sm"
+                    onClick={() => navigate('/my-returns')}
+                    style={{ minWidth: '120px' }}
+                  >
+                    📋 Xem đổi trả
+                  </button>
+                )}
+                {(order.status === 'cancelled' || order.status === 'delivered') && (
+                  <button
+                    className="btn btn-outline-secondary btn-sm"
+                    onClick={() => handleDeleteOrder(order._id)}
+                    disabled={deleting === order._id}
+                    style={{ minWidth: '100px' }}
+                  >
+                    {deleting === order._id ? "Đang xóa..." : "🗑️ Xóa"}
+                  </button>
+                )}
+              </div>
+              <div className="my-order-timeline">
+                <div className="my-order-timeline-label">📜 Lịch sử đơn hàng:</div>
+                {order.statusHistory && order.statusHistory.length > 0 ? (
+                  <div className="my-order-timeline-list">
+                    {order.statusHistory.map((h, idx) => {
+                      const stepSt = statusLabel(h.status);
+                      return (
+                        <div key={idx} className="my-order-timeline-item">
+                          <span style={{color: stepSt.color, fontWeight: 500}}>{stepSt.text}</span>
+                          <span style={{color:'#888'}}>{new Date(h.time).toLocaleString('vi-VN')}</span>
+                          {h.note && <span style={{color:'#aaa', fontSize:'0.85em'}}>{h.note}</span>}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : null}
+                {order.status === "cancelled" && (
+                  <p className="text-danger text-center mt-2 fw-bold" style={{fontSize: '13px'}}>❌ Đơn hàng đã bị hủy</p>
+                )}
               </div>
             </div>
-          );
-        })
-      )}
+          </div>
+        );
+      })}
     </div>
   );
 }
 
 export default MyOrders;
+

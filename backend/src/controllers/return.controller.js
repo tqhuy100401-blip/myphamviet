@@ -4,6 +4,26 @@ const Product = require("../models/Product");
 const { catchAsync, AppError } = require("../middlewares/errorHandler.middleware");
 const logger = require("../config/logger");
 
+// Upload return images và trả về URLs
+exports.uploadReturnImages = catchAsync(async (req, res, next) => {
+  if (!req.files || req.files.length === 0) {
+    return next(new AppError('Vui lòng chọn ít nhất 1 ảnh', 400));
+  }
+
+  // Lấy URLs từ Cloudinary hoặc local paths
+  const imageUrls = req.files.map(file => {
+    if (file.path && file.path.includes('cloudinary')) {
+      return file.path; // Cloudinary URL
+    }
+    return `/uploads/${file.filename}`; // Local path
+  });
+
+  res.json({
+    message: 'Upload ảnh thành công',
+    urls: imageUrls
+  });
+});
+
 // Kiểm tra điều kiện đổi trả (trong vòng 7 ngày, đơn đã giao)
 const canReturnOrder = async (orderId, userId) => {
   const order = await Order.findOne({ _id: orderId, user: userId });
@@ -30,11 +50,25 @@ const canReturnOrder = async (orderId, userId) => {
 // Tạo yêu cầu đổi trả
 exports.createReturn = catchAsync(async (req, res, next) => {
   const userId = req.user.id;
-  const { orderId, productId, quantity, reason, description, type, images } = req.body;
+  let { orderId, productId, quantity, reason, description, type, images } = req.body;
+
+  console.log('📦 CREATE RETURN - Raw body:', JSON.stringify(req.body, null, 2));
+  console.log('📦 images type:', typeof images, 'isArray:', Array.isArray(images));
+  console.log('📦 images value:', images);
+
+  // Fix: Nếu images là object dạng { '0': 'url', '1': 'url' }, chuyển thành array
+  if (images && typeof images === 'object' && !Array.isArray(images)) {
+    console.log('⚠️ Converting images object to array');
+    images = Object.values(images);
+  }
 
   // Validate
-  if (!orderId || !productId || !quantity || !reason || !description || !type) {
+  if (!orderId || !productId || !quantity || !reason || !type) {
     return next(new AppError('Vui lòng điền đầy đủ thông tin', 400));
+  }
+
+  if (!description || description.trim().length < 10) {
+    return next(new AppError('Vui lòng mô tả chi tiết vấn đề (ít nhất 10 ký tự)', 400));
   }
 
   // Kiểm tra điều kiện
@@ -46,7 +80,7 @@ exports.createReturn = catchAsync(async (req, res, next) => {
   const order = checkResult.order;
 
   // Kiểm tra sản phẩm có trong đơn hàng
-  const orderItem = order.items.find(item => item.product.toString() === productId);
+  const orderItem = order.items.find(item => item.product._id.toString() === productId);
   if (!orderItem) {
     return next(new AppError('Sản phẩm không có trong đơn hàng này', 400));
   }
@@ -66,6 +100,9 @@ exports.createReturn = catchAsync(async (req, res, next) => {
     return next(new AppError('Bạn đã có yêu cầu đổi trả cho sản phẩm này rồi', 400));
   }
 
+  // Tính refundAmount từ product price
+  const productPrice = orderItem.product?.price || orderItem.price || 0;
+
   // Tạo yêu cầu
   const returnRequest = await Return.create({
     user: userId,
@@ -76,7 +113,7 @@ exports.createReturn = catchAsync(async (req, res, next) => {
     description,
     type,
     images: images || [],
-    refundAmount: orderItem.price * quantity
+    refundAmount: productPrice * quantity
   });
 
   await returnRequest.populate("product", "name price image");
@@ -193,5 +230,14 @@ exports.checkReturnEligibility = catchAsync(async (req, res, next) => {
 
   const result = await canReturnOrder(orderId, userId);
 
-  res.json(result);
+  // Populate order items with product details
+  if (result.canReturn && result.order) {
+    await result.order.populate('items.product', 'name price image');
+  }
+
+  res.json({
+    eligible: result.canReturn,
+    message: result.message || (result.canReturn ? 'Đơn hàng đủ điều kiện đổi trả' : 'Đơn hàng không đủ điều kiện đổi trả'),
+    order: result.order
+  });
 });

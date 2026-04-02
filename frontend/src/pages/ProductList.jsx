@@ -3,10 +3,12 @@ import axiosClient from "../api/axiosClient";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { toast } from "react-toastify";
 import ReactPaginate from "react-paginate";
-import { FiShoppingCart, FiPackage, FiSearch, FiFilter, FiX, FiStar } from "react-icons/fi";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
+import { FiShoppingCart, FiPackage, FiSearch, FiFilter, FiX, FiStar, FiHeart, FiEye } from "react-icons/fi";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
 import { addToGuestCart } from "../utils/cartHelper";
 import { getImageUrl } from "../utils/helpers";
+import CountdownTimer from "../components/CountdownTimer";
+import SkeletonCard from "../components/SkeletonCard";
 import "../components/ProductCardButtons.css";
 
 const ITEMS_PER_PAGE = 12;
@@ -15,14 +17,22 @@ function ProductList() {
   const [searchParams, setSearchParams] = useSearchParams();
   const [currentPage, setCurrentPage] = useState(1);
   const [searchTerm, setSearchTerm] = useState("");
+
+  // Khi vào trang, nếu có ?search=... trên URL thì setSearchTerm
+  useEffect(() => {
+    const urlSearch = searchParams.get("search") || "";
+    setSearchTerm(urlSearch);
+  }, [searchParams]);
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [selectedPriceRange, setSelectedPriceRange] = useState("all");
   const [sortBy, setSortBy] = useState("createdAt");
   const [sortOrder, setSortOrder] = useState("desc");
   const [inStockOnly, setInStockOnly] = useState(false);
   const [showFilters, setShowFilters] = useState(false);
+  const [quickViewProduct, setQuickViewProduct] = useState(null);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
+  const token = localStorage.getItem("token");
 
   // Build query params for API
   const buildQueryParams = () => {
@@ -86,10 +96,64 @@ function ProductList() {
     queryFn: () => axiosClient.get("/flashsales/live").then(res => res.data.flashSales || []),
   });
 
+  // Fetch wishlist
+  const { data: wishlistData = [] } = useQuery({
+    queryKey: ["wishlist"],
+    queryFn: () => axiosClient.get("/wishlist").then(res => res.data.products || []),
+    enabled: !!token,
+  });
+
+  // Helper function to check if product is in wishlist
+  const isInWishlist = (productId) => {
+    return wishlistData.some(p => p._id === productId);
+  };
+
+  // Wishlist mutations
+  const addToWishlistMutation = useMutation({
+    mutationFn: (productId) => axiosClient.post("/wishlist/add", { productId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      toast.success("❤️ Đã thêm vào danh sách yêu thích!");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Lỗi khi thêm vào yêu thích");
+    },
+  });
+
+  const removeFromWishlistMutation = useMutation({
+    mutationFn: (productId) => axiosClient.delete(`/wishlist/remove/${productId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      toast.success("Đã xóa khỏi danh sách yêu thích!");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Lỗi khi xóa khỏi yêu thích");
+    },
+  });
+
+  const handleWishlistToggle = (e, productId) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!token) {
+      toast.warn("Vui lòng đăng nhập để thêm vào yêu thích!");
+      return;
+    }
+    if (isInWishlist(productId)) {
+      removeFromWishlistMutation.mutate(productId);
+    } else {
+      addToWishlistMutation.mutate(productId);
+    }
+  };
+
   // Helper function to get flash sale price for a product
   const getFlashSalePrice = (productId) => {
     const flashSale = flashSales.find(fs => fs.product._id === productId || fs.product === productId);
     return flashSale ? flashSale.salePrice : null;
+  };
+
+  // Helper function to get flash sale info for a product
+  const getFlashSaleInfo = (productId) => {
+    return flashSales.find(fs => fs.product._id === productId || fs.product === productId);
   };
 
   const { data: allProducts = [] } = useQuery({
@@ -145,21 +209,33 @@ function ProductList() {
 
   const handlePageClick = ({ selected }) => {
     setCurrentPage(selected + 1);
-    window.scrollTo({ top: 0, behavior: "smooth" });
+    window.scrollTo({ top: 0, behavior: "instant" });
   };
 
   const handleCategoryChange = (category) => {
     setSelectedCategory(category);
     setCurrentPage(1);
+    setShowFilters(false);
   };
 
   const handlePriceChange = (range) => {
     setSelectedPriceRange(range);
     setCurrentPage(1);
+    setShowFilters(false);
   };
 
+  // Khi người dùng nhập tìm kiếm mới (ở filter modal)
   const handleSearch = (e) => {
     setSearchTerm(e.target.value);
+    setSearchParams(prev => {
+      const params = new URLSearchParams(prev);
+      if (e.target.value) {
+        params.set("search", e.target.value);
+      } else {
+        params.delete("search");
+      }
+      return params;
+    });
     setCurrentPage(1);
   };
 
@@ -171,6 +247,7 @@ function ProductList() {
       setSortOrder("desc");
     }
     setCurrentPage(1);
+    setShowFilters(false);
   };
 
   const clearAllFilters = () => {
@@ -187,9 +264,53 @@ function ProductList() {
 
   if (isLoading) {
     return (
-      <div className="container mt-5 text-center">
-        <div className="spinner-border text-primary" role="status" />
-        <p className="mt-2 text-muted">Đang tải sản phẩm...</p>
+      <div className="container mt-4 mb-5">
+        <style>{`
+          @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+          }
+        `}</style>
+        
+        {/* Header skeleton */}
+        <div style={{
+          height: '120px',
+          background: 'linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%)',
+          backgroundSize: '1000px 100%',
+          animation: 'shimmer 2s infinite',
+          borderRadius: '20px',
+          marginBottom: '30px'
+        }} />
+        
+        {/* Filter button skeleton */}
+        <div style={{
+          width: '150px',
+          height: '48px',
+          background: 'linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%)',
+          backgroundSize: '1000px 100%',
+          animation: 'shimmer 2s infinite',
+          borderRadius: '12px',
+          marginBottom: '24px'
+        }} />
+        
+        {/* Results bar skeleton */}
+        <div style={{
+          height: '60px',
+          background: 'linear-gradient(90deg, #e0e0e0 25%, #f0f0f0 50%, #e0e0e0 75%)',
+          backgroundSize: '1000px 100%',
+          animation: 'shimmer 2s infinite',
+          borderRadius: '16px',
+          marginBottom: '24px'
+        }} />
+        
+        {/* Products skeleton grid */}
+        <div className="row justify-content-center">
+          {[...Array(12)].map((_, i) => (
+            <div key={i} className="col-lg-3 col-md-4 col-sm-6 mb-4">
+              <SkeletonCard />
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
@@ -201,9 +322,61 @@ function ProductList() {
           from { opacity: 0; transform: translateY(20px); }
           to { opacity: 1; transform: translateY(0); }
         }
+        @keyframes slideDown {
+          from { 
+            opacity: 0; 
+            transform: translateY(-30px) scale(0.95);
+            max-height: 0;
+          }
+          to { 
+            opacity: 1; 
+            transform: translateY(0) scale(1);
+            max-height: 2000px;
+          }
+        }
+        @keyframes fadeIn {
+          from { opacity: 0; }
+          to { opacity: 1; }
+        }
+        @keyframes scaleUp {
+          from { 
+            opacity: 0; 
+            transform: scale(0.9) translateY(20px);
+          }
+          to { 
+            opacity: 1; 
+            transform: scale(1) translateY(0);
+          }
+        }
         @keyframes shimmer {
           0% { background-position: -1000px 0; }
           100% { background-position: 1000px 0; }
+        }
+        .filter-modal-overlay {
+          position: fixed;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.6);
+          backdrop-filter: blur(8px);
+          z-index: 1000;
+          display: flex;
+          justify-content: center;
+          align-items: center;
+          padding: 20px;
+          animation: fadeIn 0.3s ease;
+        }
+        .filter-modal {
+          width: 100%;
+          max-width: 900px;
+          max-height: 90vh;
+          background: #fff;
+          border-radius: 24px;
+          box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+          overflow: hidden;
+          animation: scaleUp 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          position: relative;
         }
         .page-header {
           background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
@@ -240,29 +413,48 @@ function ProductList() {
           z-index: 1;
         }
         .filter-section {
-          background: linear-gradient(to bottom, #f8f9ff, #fff);
-          border-radius: 20px;
-          padding: 28px;
-          margin-bottom: 30px;
-          box-shadow: 0 4px 25px rgba(0,0,0,0.08);
-          border: 1px solid rgba(102,126,234,0.1);
-          animation: fadeInUp 0.5s ease;
+          background: #fff;
+          padding: 32px;
+          position: relative;
+          overflow-y: auto;
+          max-height: calc(90vh - 64px);
+        }
+        .filter-section::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #667eea, #764ba2, #48bb78);
+        }
+        .filter-section::before {
+          content: "";
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 4px;
+          background: linear-gradient(90deg, #667eea, #764ba2, #48bb78);
         }
         .filter-header {
           display: flex;
           justify-content: space-between;
           align-items: center;
-          margin-bottom: 24px;
-          padding-bottom: 16px;
-          border-bottom: 2px solid #e8ecf4;
+          margin-bottom: 28px;
+          padding-bottom: 20px;
+          border-bottom: 3px solid #f0f0ff;
         }
         .filter-title {
-          font-size: 18px;
+          font-size: 20px;
           font-weight: 800;
           color: #1a202c;
           display: flex;
           align-items: center;
-          gap: 10px;
+          gap: 12px;
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
         }
         .search-box {
           position: relative;
@@ -314,10 +506,8 @@ function ProductList() {
         }
         .filter-buttons {
           display: flex;
-          flex-wrap: nowrap;
-          gap: 10px;
-          overflow-x: auto;
-          padding-bottom: 8px;
+          flex-wrap: wrap;
+          gap: 12px;
         }
         .filter-buttons::-webkit-scrollbar {
           height: 6px;
@@ -334,19 +524,37 @@ function ProductList() {
           background: linear-gradient(135deg, #764ba2, #667eea);
         }
         .filter-btn {
-          padding: 10px 18px;
-          border-radius: 12px;
+          padding: 12px 20px;
+          border-radius: 14px;
           border: 2px solid #e8ecf4;
-          background: #fff;
-          color: #4a5568;
+          background: #fafbff;
+          color: #2d3748;
           font-weight: 600;
           font-size: 14px;
           cursor: pointer;
-          transition: all .25s cubic-bezier(0.4, 0, 0.2, 1);
+          transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
           display: inline-flex;
           align-items: center;
           gap: 8px;
           white-space: nowrap;
+          position: relative;
+          overflow: hidden;
+        }
+        .filter-btn::before {
+          content: "";
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          width: 0;
+          height: 0;
+          border-radius: 50%;
+          background: rgba(102,126,234,0.1);
+          transform: translate(-50%, -50%);
+          transition: width 0.4s, height 0.4s;
+        }
+        .filter-btn:hover::before {
+          width: 300px;
+          height: 300px;
         }
         .filter-btn:hover {
           border-color: #667eea;
@@ -442,28 +650,28 @@ function ProductList() {
           box-shadow: 0 4px 15px rgba(102,126,234,.25);
         }
         .toggle-filter-btn {
-          background: #fff;
-          border: 2px solid #e8ecf4;
-          padding: 10px 18px;
-          border-radius: 12px;
-          font-weight: 600;
-          color: #4a5568;
+          background: linear-gradient(135deg, #667eea, #764ba2);
+          border: none;
+          padding: 12px 24px;
+          border-radius: 14px;
+          font-weight: 700;
+          color: #fff;
           cursor: pointer;
-          transition: all .2s ease;
+          transition: all .3s cubic-bezier(0.4, 0, 0.2, 1);
           display: inline-flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
+          box-shadow: 0 4px 16px rgba(102,126,234,.3);
         }
         .toggle-filter-btn:hover {
-          border-color: #667eea;
-          color: #667eea;
-          transform: translateY(-2px);
+          transform: translateY(-3px);
+          box-shadow: 0 8px 24px rgba(102,126,234,.4);
         }
         .product-card {
           border-radius: 18px;
           overflow: hidden;
           transition: all .4s cubic-bezier(0.4, 0, 0.2, 1);
-          border: 2px solid #f7fafc;
+          border: 2px solid #cbd5e0;
           height: 100%;
           background: #fff;
           display: flex;
@@ -505,6 +713,15 @@ function ProductList() {
         }
         .product-card:hover img {
           transform: scale(1.08);
+        }
+        .product-card:hover .quick-view-btn {
+          opacity: 1 !important;
+          transform: translate(-50%, -50%) scale(1) !important;
+        }
+        .quick-view-btn:hover {
+          transform: translate(-50%, -50%) scale(1.15) !important;
+          box-shadow: 0 12px 32px rgba(102, 126, 234, 0.6) !important;
+          border-width: 4px !important;
         }
         .badge-stock {
           position: absolute;
@@ -639,9 +856,11 @@ function ProductList() {
         </div>
       )}
 
-      {/* Filter Section */}
+      {/* Filter Modal */}
       {showFilters && (
-        <div className="filter-section">
+        <div className="filter-modal-overlay" onClick={() => setShowFilters(false)}>
+          <div className="filter-modal" onClick={(e) => e.stopPropagation()}>
+            <div className="filter-section">
           <div className="filter-header">
             <div className="filter-title">
               <FiFilter size={20} />
@@ -799,6 +1018,7 @@ function ProductList() {
                 onChange={(e) => {
                   setInStockOnly(e.target.checked);
                   setCurrentPage(1);
+                  setShowFilters(false);
                 }}
               />
               <label htmlFor="inStockCheck">
@@ -819,6 +1039,8 @@ function ProductList() {
               </button>
             </div>
           )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -855,6 +1077,36 @@ function ProductList() {
                 {/* Link bao quanh hình và thông tin */}
                 <Link to={`/products/${p._id}`} style={{ textDecoration: "none", color: "inherit", flex: '1 1 auto', display: 'flex', flexDirection: 'column' }}>
                   <div className="product-image-wrapper" style={{ position: "relative" }}>
+                      {/* Nút xem nhanh */}
+                      <button
+                        onClick={(e) => {
+                          e.preventDefault();
+                          e.stopPropagation();
+                          setQuickViewProduct(p);
+                        }}
+                        style={{
+                          position: 'absolute',
+                          top: '50%',
+                          left: '50%',
+                          transform: 'translate(-50%, -50%)',
+                          background: '#fff',
+                          border: '3px solid #667eea',
+                          borderRadius: '50%',
+                          width: '64px',
+                          height: '64px',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          cursor: 'pointer',
+                          opacity: 0,
+                          transition: 'all 0.3s ease',
+                          zIndex: 10,
+                          boxShadow: '0 8px 24px rgba(102, 126, 234, 0.5)'
+                        }}
+                        className="quick-view-btn"
+                      >
+                        <FiEye size={28} color="#667eea" strokeWidth={3} />
+                      </button>
                       <img
                         src={getImageUrl(p.image) || "https://via.placeholder.com/300x220?text=No+Image"}
                         className="card-img-top"
@@ -886,15 +1138,15 @@ function ProductList() {
                               return (
                                 <>
                                   <span style={{color:'#fc8181',fontWeight:700,fontSize:18}}>{Number(flashSalePrice).toLocaleString('vi-VN')}đ</span>
-                                  <span style={{textDecoration:'line-through',color:'#718096',fontSize:15}}>{Number(p.price).toLocaleString('vi-VN')}đ</span>
-                                  <span style={{background:'#ff4757',color:'#fff',borderRadius:'4px',padding:'2px 8px',fontSize:12,fontWeight:700}}>⚡ FLASH SALE</span>
+                                  <span style={{textDecoration:'line-through',color:'#718096',fontSize:14}}>{Number(p.price).toLocaleString('vi-VN')}đ</span>
+                                  <span style={{background:'#ff4757',color:'#fff',borderRadius:'4px',padding:'2px 6px',fontSize:12,fontWeight:700}}>⚡ FLASH SALE</span>
                                 </>
                               );
                             } else if (p.discount && p.discount.value > 0) {
                               return (
                                 <>
                                   <span style={{color:'#fc8181',fontWeight:700,fontSize:18}}>{Number(p.price).toLocaleString('vi-VN')}đ</span>
-                                  <span style={{textDecoration:'line-through',color:'#718096',fontSize:15}}>{Number(p.price + (p.discount.type==='percent'? p.price*p.discount.value/100 : p.discount.value)).toLocaleString('vi-VN')}đ</span>
+                                  <span style={{textDecoration:'line-through',color:'#718096',fontSize:14}}>{Number(p.price + (p.discount.type==='percent'? p.price*p.discount.value/100 : p.discount.value)).toLocaleString('vi-VN')}đ</span>
                                 </>
                               );
                             } else {
@@ -903,7 +1155,7 @@ function ProductList() {
                           })()}
                         </div>
                         {/* Tên thương hiệu */}
-                        <div style={{color:'#38a169',fontWeight:700,fontSize:16,margin:'6px 0'}}>{p.brand || p.category}</div>
+                        <div style={{color:'#38a169',fontWeight:700,fontSize:16,margin:'4px 0'}}>{p.brand || p.category}</div>
                         {/* Tên sản phẩm */}
                         <h5 className="card-title" style={{ 
                           fontSize: "16px", 
@@ -916,44 +1168,58 @@ function ProductList() {
                           overflow: "hidden",
                           textOverflow: "ellipsis",
                           color: "#1a202c",
-                          marginBottom: "8px"
+                          marginBottom: "6px"
                         }}>
                           {p.name}
                         </h5>
                         {/* Mô tả ngắn */}
-                        <div style={{fontSize:14,color:'#4a5568',minHeight:'40px',maxHeight:'40px',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',textOverflow:'ellipsis',marginBottom:'8px'}}>{p.description}</div>
-                        {/* Rating Display */}
-                        {p.reviewCount > 0 && (
-                          <div className="d-flex align-items-center gap-1 mb-2">
-                            <FiStar size={14} fill="#fbbf24" stroke="#fbbf24" />
-                            <span className="text-warning fw-bold" style={{ fontSize: "14px" }}>
-                              {p.averageRating.toFixed(1)}
-                            </span>
-                            <span className="text-muted" style={{ fontSize: "12px" }}>
-                              ({p.reviewCount})
-                            </span>
-                          </div>
-                        )}
+                        <div style={{fontSize:14,color:'#4a5568',minHeight:'44px',maxHeight:'44px',display:'-webkit-box',WebkitLineClamp:2,WebkitBoxOrient:'vertical',overflow:'hidden',textOverflow:'ellipsis',marginBottom:'6px'}}>{p.description}</div>
+                        {/* Rating Display - luôn hiển thị để card đều nhau */}
+                        <div className="d-flex align-items-center gap-1 mb-2" style={{ minHeight: '18px' }}>
+                          {p.reviewCount > 0 ? (
+                            <>
+                              <FiStar size={14} fill="#fbbf24" stroke="#fbbf24" />
+                              <span className="text-warning fw-bold" style={{ fontSize: "14px" }}>
+                                {p.averageRating.toFixed(1)}
+                              </span>
+                              <span className="text-muted" style={{ fontSize: "12px" }}>
+                                ({p.reviewCount})
+                              </span>
+                            </>
+                          ) : (
+                            <span className="text-muted" style={{ fontSize: "12px" }}>Chưa có đánh giá</span>
+                          )}
+                        </div>
                         {/* Số lượng bán/tháng */}
-                        <div style={{display:'flex',alignItems:'center',gap:8,fontSize:13,color:'#718096',marginBottom:'4px'}}>
-                          <span><FiShoppingCart size={13}/> {p.sold || Math.floor(Math.random()*200)} bán/tháng</span>
-                          <span>{Math.floor(Math.random()*100)}%</span>
+                        <div style={{display:'flex',alignItems:'center',gap:6,fontSize:13,color:'#718096',marginBottom:'4px'}}>
+                          <span><FiShoppingCart size={13}/> {p.sold || 0} bán/tháng</span>
+                          <span>{Math.min(Math.round((p.sold || 0) / 200 * 100), 100)}%</span>
                         </div>
                         {/* Progress bar */}
-                        <div style={{height:6,background:'#e2e8f0',borderRadius:4,overflow:'hidden',marginBottom:8}}>
-                          <div style={{height:'100%',width:`${Math.floor(Math.random()*100)}%`,background:'linear-gradient(90deg,#fc8181,#fbbf24)'}}></div>
+                        <div style={{height:5,background:'#e2e8f0',borderRadius:4,overflow:'hidden',marginBottom:6}}>
+                          <div style={{height:'100%',width:`${Math.min(Math.round((p.sold || 0) / 200 * 100), 100)}%`,background:'linear-gradient(90deg,#fc8181,#fbbf24)'}}></div>
                         </div>
                       </div>
                     </div>
                 </Link>
                 
                 {/* Nút hành động - nằm ngoài Link */}
-                <div className="card-body pt-2" style={{ marginTop: 'auto', paddingBottom: '15px' }}>
+                <div className="card-body pt-2" style={{ marginTop: 'auto', paddingBottom: '12px' }}>
                   <div className="card-actions" style={{display:'flex',gap:'8px',justifyContent:'center'}}>
                     <Link 
                       to={`/products/${p._id}`} 
                       className="product-btn detail-btn" 
-                      style={{ flex: 1, textAlign: 'center', padding: '8px 10px', fontSize: '13px' }}
+                      style={{ 
+                        flex: 1, 
+                        textAlign: 'center', 
+                        padding: '8px 10px', 
+                        fontSize: '13px',
+                        height: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px'
+                      }}
                       onClick={(e) => e.stopPropagation()}
                     >
                       🔍 Chi tiết
@@ -962,9 +1228,50 @@ function ProductList() {
                       onClick={(e) => buyNow(e, p._id)}
                       disabled={p.stock === 0}
                       className="product-btn buy-btn"
-                      style={{ flex: 1, padding: '8px 10px', fontSize: '13px' }}
+                      style={{ 
+                        flex: 1, 
+                        padding: '8px 10px', 
+                        fontSize: '13px',
+                        height: '42px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '3px'
+                      }}
                     >
                       <FiShoppingCart size={14} /> Mua ngay
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleWishlistToggle(e, p._id);
+                      }}
+                      style={{
+                        background: isInWishlist(p._id) ? '#fff5f5' : '#fff',
+                        border: `2px solid ${isInWishlist(p._id) ? '#e53e3e' : '#e2e8f0'}`,
+                        borderRadius: '8px',
+                        width: '40px',
+                        padding: '8px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        cursor: 'pointer',
+                        transition: 'all 0.2s'
+                      }}
+                      onMouseEnter={e => {
+                        e.target.style.borderColor = isInWishlist(p._id) ? '#c53030' : '#cbd5e0';
+                      }}
+                      onMouseLeave={e => {
+                        e.target.style.borderColor = isInWishlist(p._id) ? '#e53e3e' : '#e2e8f0';
+                      }}
+                    >
+                      <span style={{
+                        fontSize: '18px',
+                        lineHeight: 1
+                      }}>
+                        {isInWishlist(p._id) ? '❤️' : '🤍'}
+                      </span>
                     </button>
                   </div>
                 </div>
@@ -990,6 +1297,403 @@ function ProductList() {
           previousClassName="previous"
           nextClassName="next"
         />
+      )}
+
+      {/* Quick View Modal */}
+      {quickViewProduct && (
+        <div 
+          style={{
+            position: 'fixed',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: 'rgba(0, 0, 0, 0.7)',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 9999,
+            padding: '20px',
+            backdropFilter: 'blur(5px)',
+            animation: 'fadeIn 0.3s ease'
+          }}
+          onClick={() => setQuickViewProduct(null)}
+        >
+          <div 
+            style={{
+              background: '#fff',
+              borderRadius: '20px',
+              maxWidth: '900px',
+              width: '100%',
+              maxHeight: '90vh',
+              overflow: 'auto',
+              boxShadow: '0 20px 60px rgba(0, 0, 0, 0.3)',
+              animation: 'scaleUp 0.3s ease'
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            {/* Header */}
+            <div style={{
+              padding: '20px 30px',
+              borderBottom: '2px solid #f0f0ff',
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              borderRadius: '20px 20px 0 0',
+              color: '#fff'
+            }}>
+              <h3 style={{ margin: 0, fontSize: '20px', fontWeight: 700 }}>
+                <FiEye size={24} style={{ verticalAlign: 'middle', marginRight: '8px' }} />
+                Xem nhanh sản phẩm
+              </h3>
+              <button
+                onClick={() => setQuickViewProduct(null)}
+                style={{
+                  background: '#fff',
+                  border: 'none',
+                  borderRadius: '50%',
+                  width: '44px',
+                  height: '44px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  flexShrink: 0,
+                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.15)',
+                  fontSize: '28px',
+                  fontWeight: 'bold',
+                  color: '#667eea',
+                  lineHeight: 1
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = '#f56565';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = '#fff';
+                  e.currentTarget.style.color = '#667eea';
+                }}
+              >
+                ×
+              </button>
+            </div>
+
+            {/* Content */}
+            <div style={{ padding: '30px' }}>
+              <div style={{ display: 'flex', gap: '30px', flexWrap: 'wrap' }}>
+                {/* Image */}
+                <div style={{ flex: '1 1 300px', minWidth: '250px' }}>
+                  <img
+                    src={getImageUrl(quickViewProduct.image)}
+                    alt={quickViewProduct.name}
+                    style={{
+                      width: '100%',
+                      borderRadius: '16px',
+                      objectFit: 'cover',
+                      maxHeight: '400px',
+                      boxShadow: '0 10px 30px rgba(0, 0, 0, 0.1)'
+                    }}
+                  />
+                  {quickViewProduct.stock > 0 ? (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '10px',
+                      background: 'linear-gradient(135deg, #48bb78, #38a169)',
+                      borderRadius: '10px',
+                      color: '#fff',
+                      textAlign: 'center',
+                      fontWeight: 600
+                    }}>
+                      📦 Còn {quickViewProduct.stock} sản phẩm
+                    </div>
+                  ) : (
+                    <div style={{
+                      marginTop: '12px',
+                      padding: '10px',
+                      background: 'linear-gradient(135deg, #fc8181, #f56565)',
+                      borderRadius: '10px',
+                      color: '#fff',
+                      textAlign: 'center',
+                      fontWeight: 600
+                    }}>
+                      ❌ Hết hàng
+                    </div>
+                  )}
+                </div>
+
+                {/* Info */}
+                <div style={{ flex: '1 1 400px' }}>
+                  <div style={{
+                    display: 'inline-block',
+                    padding: '6px 12px',
+                    background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                    color: '#fff',
+                    borderRadius: '6px',
+                    fontSize: '13px',
+                    fontWeight: 600,
+                    marginBottom: '12px'
+                  }}>
+                    {quickViewProduct.category}
+                  </div>
+
+                  <h2 style={{
+                    fontSize: '24px',
+                    fontWeight: 700,
+                    color: '#1a202c',
+                    marginBottom: '12px',
+                    lineHeight: 1.3
+                  }}>
+                    {quickViewProduct.name}
+                  </h2>
+
+                  {quickViewProduct.brand && (
+                    <div style={{
+                      color: '#38a169',
+                      fontWeight: 700,
+                      fontSize: '16px',
+                      marginBottom: '12px'
+                    }}>
+                      🏷️ {quickViewProduct.brand}
+                    </div>
+                  )}
+
+                  {/* Rating */}
+                  {quickViewProduct.reviewCount > 0 && (
+                    <div style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      marginBottom: '16px'
+                    }}>
+                      <FiStar size={16} fill="#fbbf24" stroke="#fbbf24" />
+                      <span style={{ fontWeight: 700, color: '#fbbf24' }}>
+                        {quickViewProduct.averageRating.toFixed(1)}
+                      </span>
+                      <span style={{ color: '#718096' }}>
+                        ({quickViewProduct.reviewCount} đánh giá)
+                      </span>
+                    </div>
+                  )}
+
+                  {/* Price */}
+                  <div style={{
+                    padding: '20px',
+                    background: 'linear-gradient(135deg, #fff5f5, #fff)',
+                    borderRadius: '12px',
+                    marginBottom: '20px',
+                    border: '2px solid #fc8181'
+                  }}>
+                    {(() => {
+                      const flashSalePrice = getFlashSalePrice(quickViewProduct._id);
+                      const flashSaleInfo = getFlashSaleInfo(quickViewProduct._id);
+                      if (flashSalePrice && flashSaleInfo) {
+                        return (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: '28px', fontWeight: 700, color: '#fc8181' }}>
+                                {Number(flashSalePrice).toLocaleString('vi-VN')}đ
+                              </span>
+                              <span style={{
+                                background: '#ff4757',
+                                color: '#fff',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '13px',
+                                fontWeight: 700
+                              }}>
+                                ⚡ FLASH SALE
+                              </span>
+                            </div>
+                            <div style={{
+                              textDecoration: 'line-through',
+                              color: '#a0aec0',
+                              fontSize: '16px',
+                              marginBottom: '12px'
+                            }}>
+                              {Number(quickViewProduct.price).toLocaleString('vi-VN')}đ
+                            </div>
+                            {/* Countdown Timer */}
+                            <div style={{
+                              background: 'linear-gradient(135deg, #ff4757, #ff6b81)',
+                              padding: '12px',
+                              borderRadius: '10px',
+                              display: 'flex',
+                              alignItems: 'center',
+                              gap: '10px',
+                              justifyContent: 'space-between'
+                            }}>
+                              <div style={{ color: '#fff', fontWeight: 600, fontSize: '14px' }}>
+                                ⏰ Kết thúc sau:
+                              </div>
+                              <div style={{ color: '#fff' }}>
+                                <CountdownTimer targetDate={flashSaleInfo.endTime} />
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      } else if (quickViewProduct.discount && quickViewProduct.discount.value > 0) {
+                        const originalPrice = quickViewProduct.price + 
+                          (quickViewProduct.discount.type === 'percent' 
+                            ? quickViewProduct.price * quickViewProduct.discount.value / 100 
+                            : quickViewProduct.discount.value);
+                        return (
+                          <div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '8px' }}>
+                              <span style={{ fontSize: '28px', fontWeight: 700, color: '#fc8181' }}>
+                                {Number(quickViewProduct.price).toLocaleString('vi-VN')}đ
+                              </span>
+                              <span style={{
+                                background: '#fc8181',
+                                color: '#fff',
+                                padding: '4px 10px',
+                                borderRadius: '6px',
+                                fontSize: '13px',
+                                fontWeight: 700
+                              }}>
+                                -{quickViewProduct.discount.type === 'percent' 
+                                  ? quickViewProduct.discount.value + '%' 
+                                  : Number(quickViewProduct.discount.value).toLocaleString('vi-VN') + 'đ'}
+                              </span>
+                            </div>
+                            <span style={{
+                              textDecoration: 'line-through',
+                              color: '#a0aec0',
+                              fontSize: '16px'
+                            }}>
+                              {Number(originalPrice).toLocaleString('vi-VN')}đ
+                            </span>
+                          </div>
+                        );
+                      } else {
+                        return (
+                          <span style={{ fontSize: '28px', fontWeight: 700, color: '#fc8181' }}>
+                            {Number(quickViewProduct.price).toLocaleString('vi-VN')}đ
+                          </span>
+                        );
+                      }
+                    })()}
+                  </div>
+
+                  {/* Description */}
+                  <div style={{ marginBottom: '20px' }}>
+                    <h4 style={{ fontSize: '16px', fontWeight: 700, marginBottom: '10px', color: '#2d3748' }}>
+                      📝 Mô tả sản phẩm
+                    </h4>
+                    <p style={{ color: '#4a5568', lineHeight: 1.6, fontSize: '14px' }}>
+                      {quickViewProduct.description || 'Chưa có mô tả'}
+                    </p>
+                  </div>
+
+                  {/* Stats */}
+                  <div style={{
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(2, 1fr)',
+                    gap: '12px',
+                    marginBottom: '20px'
+                  }}>
+                    <div style={{
+                      padding: '12px',
+                      background: '#f7fafc',
+                      borderRadius: '10px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#667eea' }}>
+                        {quickViewProduct.sold || 0}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#718096' }}>Đã bán</div>
+                    </div>
+                    <div style={{
+                      padding: '12px',
+                      background: '#f7fafc',
+                      borderRadius: '10px',
+                      textAlign: 'center'
+                    }}>
+                      <div style={{ fontSize: '20px', fontWeight: 700, color: '#48bb78' }}>
+                        {quickViewProduct.stock}
+                      </div>
+                      <div style={{ fontSize: '12px', color: '#718096' }}>Còn lại</div>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div style={{ display: 'flex', gap: '12px' }}>
+                    <button
+                      onClick={() => {
+                        navigate(`/products/${quickViewProduct._id}`);
+                        setQuickViewProduct(null);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        background: 'linear-gradient(135deg, #667eea, #764ba2)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '12px',
+                        fontWeight: 700,
+                        fontSize: '15px',
+                        cursor: 'pointer',
+                        transition: 'all 0.3s',
+                        boxShadow: '0 4px 15px rgba(102, 126, 234, 0.3)'
+                      }}
+                      onMouseEnter={e => {
+                        e.target.style.transform = 'translateY(-2px)';
+                        e.target.style.boxShadow = '0 6px 20px rgba(102, 126, 234, 0.4)';
+                      }}
+                      onMouseLeave={e => {
+                        e.target.style.transform = 'translateY(0)';
+                        e.target.style.boxShadow = '0 4px 15px rgba(102, 126, 234, 0.3)';
+                      }}
+                    >
+                      🔍 Xem chi tiết
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        buyNow(e, quickViewProduct._id);
+                        setQuickViewProduct(null);
+                      }}
+                      disabled={quickViewProduct.stock === 0}
+                      style={{
+                        flex: 1,
+                        padding: '14px',
+                        background: quickViewProduct.stock === 0 
+                          ? '#e2e8f0' 
+                          : 'linear-gradient(135deg, #48bb78, #38a169)',
+                        color: '#fff',
+                        border: 'none',
+                        borderRadius: '12px',
+                        fontWeight: 700,
+                        fontSize: '15px',
+                        cursor: quickViewProduct.stock === 0 ? 'not-allowed' : 'pointer',
+                        transition: 'all 0.3s',
+                        boxShadow: quickViewProduct.stock === 0 
+                          ? 'none' 
+                          : '0 4px 15px rgba(72, 187, 120, 0.3)',
+                        opacity: quickViewProduct.stock === 0 ? 0.6 : 1
+                      }}
+                      onMouseEnter={e => {
+                        if (quickViewProduct.stock > 0) {
+                          e.target.style.transform = 'translateY(-2px)';
+                          e.target.style.boxShadow = '0 6px 20px rgba(72, 187, 120, 0.4)';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (quickViewProduct.stock > 0) {
+                          e.target.style.transform = 'translateY(0)';
+                          e.target.style.boxShadow = '0 4px 15px rgba(72, 187, 120, 0.3)';
+                        }
+                      }}
+                    >
+                      <FiShoppingCart size={16} style={{ verticalAlign: 'middle', marginRight: '6px' }} />
+                      {quickViewProduct.stock === 0 ? 'Hết hàng' : 'Mua ngay'}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

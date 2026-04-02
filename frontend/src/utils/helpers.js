@@ -88,17 +88,19 @@ export const isValidPhone = (phone) => {
 
 // Get image URL
 export const getImageUrl = (imagePath) => {
-  console.log('🖼️ getImageUrl input:', imagePath);
   if (!imagePath) {
-    console.log('❌ No image path, returning placeholder');
     return '/placeholder.png';
   }
   if (imagePath.startsWith('http')) {
-    console.log('✅ Full URL detected:', imagePath);
     return imagePath;
   }
+  // If path already starts with /uploads/, use it directly
+  if (imagePath.startsWith('/uploads/')) {
+    const localUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5002'}${imagePath}`;
+    return localUrl;
+  }
+  // Otherwise, add /uploads/ prefix
   const localUrl = `${import.meta.env.VITE_API_URL?.replace('/api', '') || 'http://localhost:5002'}/uploads/${imagePath}`;
-  console.log('📁 Local file path, returning:', localUrl);
   return localUrl;
 };
 

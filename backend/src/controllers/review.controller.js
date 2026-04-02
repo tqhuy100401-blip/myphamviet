@@ -84,8 +84,9 @@ exports.addReview = catchAsync(async (req, res, next) => {
 
   logger.info('Review added', { userId, productId, rating });
   
-  // Clear product cache
+  // Clear product and review cache
   clearCacheByPattern('products');
+  clearCacheByPattern('reviews');
 
   res.status(201).json({
     message: "Đánh giá thành công",
@@ -147,6 +148,10 @@ exports.updateReview = catchAsync(async (req, res, next) => {
   if (comment) review.comment = comment.trim();
   await review.save();
 
+  // Clear cache
+  clearCacheByPattern('products');
+  clearCacheByPattern('reviews');
+
   // Cập nhật rating trung bình
   await updateProductRating(review.product);
 
@@ -189,6 +194,7 @@ exports.deleteReview = catchAsync(async (req, res, next) => {
   
   // Clear cache
   clearCacheByPattern('products');
+  clearCacheByPattern('reviews');
 
   res.json({ message: "Xóa đánh giá thành công" });
 });

@@ -1,3 +1,46 @@
+/* Overlay for modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(0,0,0,0.35);
+  z-index: 1000;
+}
+
+/* Centered modal for flash sale form */
+
+.flashsale-form-modal {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+  overflow-y: auto;
+  scroll-behavior: smooth;
+}
+
+.flashsale-form-card {
+  background: #fff;
+  border-radius: 12px;
+  box-shadow: 0 4px 32px rgba(0,0,0,0.18);
+  padding: 24px 32px 24px 32px;
+  min-width: 350px;
+  width: 100%;
+  max-width: 700px;
+  max-height: 90vh;
+  overflow-y: auto;
+  position: relative;
+  pointer-events: auto;
+  display: flex;
+  flex-direction: column;
+}
 .admin-flashsales {
   padding: 24px;
   max-width: 1400px;
@@ -64,6 +107,10 @@
   margin-top: 24px;
   padding-top: 24px;
   border-top: 1px solid #e2e8f0;
+  position: sticky;
+  bottom: 0;
+  background: #fff;
+  z-index: 2;
 }
 
 .admin-flashsales .checkbox-group {
@@ -135,7 +182,7 @@
   margin-bottom: 32px;
   border: 1px solid #f0f0f0;
   position: relative;
-  overflow: hidden;
+  /*overflow: hidden;*/
 }
 
 .flashsale-form-card::before {

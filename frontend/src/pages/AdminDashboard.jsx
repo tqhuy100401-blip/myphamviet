@@ -1,3 +1,11 @@
+const chartCard = {
+  background: 'linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%)',
+  borderRadius: "16px",
+  padding: "24px",
+  boxShadow: "0 8px 32px rgba(0,0,0,0.5)",
+  height: "100%",
+  border: '1px solid rgba(255,255,255,0.1)'
+};
 import { Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import { useQuery } from "@tanstack/react-query";
@@ -18,13 +26,19 @@ const STATUS_MAP = {
 const cardStyle = (gradient) => ({
   background: gradient, borderRadius: "16px", padding: "24px",
   color: "#fff", position: "relative", overflow: "hidden",
-  boxShadow: "0 8px 25px rgba(0,0,0,0.1)", transition: "all .3s ease",
+  boxShadow: "0 8px 25px rgba(0,0,0,0.1)", transition: "all .3s ease"
 });
 
-const chartCard = {
-  background: "#fff", borderRadius: "16px", padding: "24px",
-  boxShadow: "0 4px 20px rgba(0,0,0,0.06)", height: "100%",
-};
+const ADMIN_SIDEBAR_MENUS = [
+  { icon: "📦", title: "Sản phẩm", link: "/admin/products", color: "#667eea" },
+  { icon: "📂", title: "Danh mục", link: "/admin/categories", color: "#9F7AEA" },
+  { icon: "🛒", title: "Đơn hàng", link: "/admin/orders", color: "#ECC94B" },
+  { icon: "🔄", title: "Đổi trả", link: "/admin/returns", color: "#F56565" },
+  { icon: "🎫", title: "Khuyến mãi", link: "/admin/coupons", color: "#ED8936" },
+  { icon: "⚡", title: "Flash Sale", link: "/admin/flashsales", color: "#FC8181" },
+  { icon: "⭐", title: "Đánh giá", link: "/admin/reviews", color: "#f59e42" },
+  { icon: "👥", title: "Người dùng", link: "/admin/users", color: "#48BB78" },
+];
 
 const CustomTooltipRevenue = ({ active, payload, label }) => {
   if (active && payload?.length) {
@@ -114,9 +128,14 @@ function AdminDashboard() {
     : val >= 1000 ? `${(val / 1000).toFixed(0)}k` : val;
 
   return (
-    <div className="container mt-4 mb-5">
+    <div className="container-fluid mt-4 mb-5" style={{
+      minHeight: '100vh',
+      background: 'linear-gradient(135deg, #0f0f0f 0%, #1a1a1a 50%, #0a0a0a 100%)',
+      padding: '32px 24px',
+      marginTop: '0 !important'
+    }}>
       <style>{`
-        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 35px rgba(0,0,0,0.15) !important; }
+        .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 35px rgba(102, 126, 234, 0.3) !important; }
         .stat-card::after {
           content: ""; position: absolute; top: -20px; right: -20px;
           width: 100px; height: 100px; border-radius: 50%;
@@ -127,13 +146,82 @@ function AdminDashboard() {
           width: 60px; height: 60px; border-radius: 50%;
           background: rgba(255,255,255,0.08);
         }
-        .manage-card { transition: all .3s ease; border: none; border-radius: 16px; overflow: hidden; }
-        .manage-card:hover { transform: translateY(-4px); box-shadow: 0 12px 30px rgba(0,0,0,0.1) !important; }
+        .sidebar-menu { 
+          position: sticky; 
+          top: 20px; 
+          background: linear-gradient(135deg, #1a1a1a 0%, #2d2d2d 100%);
+          border-radius: 16px; 
+          padding: 24px 16px;
+          box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+          height: fit-content;
+          border: 1px solid rgba(255,255,255,0.1);
+        }
+        .manage-card { 
+          transition: all .3s ease; 
+          border: 1px solid rgba(255,255,255,0.1); 
+          border-radius: 12px; 
+          overflow: hidden;
+          margin-bottom: 12px;
+          cursor: pointer;
+          background: rgba(255,255,255,0.05);
+        }
+        .manage-card:hover { 
+          transform: translateX(8px); 
+          box-shadow: 0 4px 20px rgba(102, 126, 234, 0.3) !important;
+          background: rgba(255,255,255,0.08);
+          border-color: rgba(102, 126, 234, 0.4);
+        }
       `}</style>
 
-      <div className="d-flex align-items-center mb-4">
-        <h2 style={{ fontWeight: 800, color: "#1a202c", margin: 0 }}>📊 Admin Dashboard</h2>
-      </div>
+      <div className="row">
+        {/* SIDEBAR - MENU QUẢN LÝ */}
+        <div className="col-md-3">
+          <div className="sidebar-menu">
+            <h4 style={{ fontWeight: 700, color: "#fff", marginBottom: "20px", fontSize: "18px" }}>
+              ⚙️ Quản lý
+            </h4>
+            {ADMIN_SIDEBAR_MENUS.map((m, i) => (
+              <Link 
+                to={m.link} 
+                key={i} 
+                style={{ textDecoration: "none" }}
+                onClick={(e) => {
+                  e.preventDefault();
+                  window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+                  window.location.href = m.link;
+                }}
+              >
+                <div className="card manage-card shadow-sm">
+                  <div className="card-body" style={{ padding: "14px 16px" }}>
+                    <div className="d-flex align-items-center">
+                      <div style={{
+                        width: "40px", height: "40px", borderRadius: "10px",
+                        background: `${m.color}30`, display: "flex",
+                        alignItems: "center", justifyContent: "center",
+                        fontSize: "20px", marginRight: "12px", flexShrink: 0
+                      }}>{m.icon}</div>
+                      <div style={{ flex: 1 }}>
+                        <h6 style={{ 
+                          fontWeight: 600, 
+                          color: "#fff", 
+                          margin: 0, 
+                          fontSize: "14px" 
+                        }}>{m.title}</h6>
+                      </div>
+                      <div style={{ color: m.color, fontSize: "16px" }}>→</div>
+                    </div>
+                  </div>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </div>
+
+        {/* MAIN CONTENT */}
+        <div className="col-md-9">
+          <div className="d-flex align-items-center mb-4">
+            <h2 style={{ fontWeight: 800, color: "#fff", margin: 0 }}>📊 Admin Dashboard</h2>
+          </div>
 
       {/* ===== STAT CARDS ===== */}
       <div className="row mb-4 g-3">
@@ -143,7 +231,7 @@ function AdminDashboard() {
           { icon: "🛒", label: "Đơn hàng", value: stats.totalOrders, gradient: "linear-gradient(135deg, #ECC94B, #D69E2E)" },
           { icon: "💰", label: "Doanh thu", value: `${Number(stats.totalRevenue).toLocaleString("vi-VN")}đ`, gradient: "linear-gradient(135deg, #F56565, #E53E3E)" },
         ].map((c, i) => (
-          <div className="col-md-3" key={i}>
+          <div className="col-md-6 col-lg-3" key={i}>
             <div className="stat-card" style={cardStyle(c.gradient)}>
               <div style={{ fontSize: "28px", marginBottom: "8px" }}>{c.icon}</div>
               <p style={{ margin: 0, fontSize: "13px", opacity: 0.85 }}>{c.label}</p>
@@ -156,9 +244,9 @@ function AdminDashboard() {
       {/* ===== CHARTS ROW 1 ===== */}
       <div className="row mb-4 g-3">
         {/* Doanh thu 7 ngày */}
-        <div className="col-md-8">
+        <div className="col-lg-8">
           <div style={chartCard}>
-            <h5 style={{ fontWeight: 700, color: "#1a202c", marginBottom: "20px" }}>
+            <h5 style={{ fontWeight: 700, color: "#fff", marginBottom: "20px" }}>
               📈 Doanh thu 7 ngày gần nhất
             </h5>
             <ResponsiveContainer width="100%" height={300}>
@@ -169,9 +257,9 @@ function AdminDashboard() {
                     <stop offset="95%" stopColor="#667eea" stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="date" tick={{ fontSize: 12, fill: "#718096" }} />
-                <YAxis tickFormatter={formatVND} tick={{ fontSize: 12, fill: "#718096" }} />
+                <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+                <XAxis dataKey="date" tick={{ fontSize: 12, fill: "rgba(255,255,255,0.7)" }} />
+                <YAxis tickFormatter={formatVND} tick={{ fontSize: 12, fill: "rgba(255,255,255,0.7)" }} />
                 <Tooltip content={<CustomTooltipRevenue />} />
                 <Area
                   type="monotone" dataKey="revenue" stroke="#667eea"
@@ -190,9 +278,9 @@ function AdminDashboard() {
         </div>
 
         {/* Đơn hàng theo trạng thái */}
-        <div className="col-md-4">
+        <div className="col-lg-4">
           <div style={chartCard}>
-            <h5 style={{ fontWeight: 700, color: "#1a202c", marginBottom: "20px" }}>
+            <h5 style={{ fontWeight: 700, color: "#fff", marginBottom: "20px" }}>
               🔄 Trạng thái đơn hàng
             </h5>
             {pieData.length > 0 ? (
@@ -212,12 +300,12 @@ function AdminDashboard() {
                   <Legend
                     verticalAlign="bottom"
                     iconType="circle" iconSize={10}
-                    formatter={(val) => <span style={{ color: "#4a5568", fontSize: "12px" }}>{val}</span>}
+                    formatter={(val) => <span style={{ color: "rgba(255,255,255,0.8)", fontSize: "12px" }}>{val}</span>}
                   />
                 </PieChart>
               </ResponsiveContainer>
             ) : (
-              <p className="text-muted text-center mt-5">Chưa có dữ liệu</p>
+              <p style={{ color: "rgba(255,255,255,0.5)", textAlign: "center", marginTop: "80px" }}>Chưa có dữ liệu</p>
             )}
           </div>
         </div>
@@ -228,14 +316,14 @@ function AdminDashboard() {
         <div className="row mb-4 g-3">
           <div className="col-12">
             <div style={chartCard}>
-              <h5 style={{ fontWeight: 700, color: "#1a202c", marginBottom: "20px" }}>
+              <h5 style={{ fontWeight: 700, color: "#fff", marginBottom: "20px" }}>
                 🏆 Top 5 sản phẩm bán chạy
               </h5>
               <ResponsiveContainer width="100%" height={280}>
                 <BarChart data={topProducts} layout="vertical" margin={{ left: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" horizontal={false} />
-                  <XAxis type="number" tick={{ fontSize: 12, fill: "#718096" }} />
-                  <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12, fill: "#4a5568" }} />
+                  <CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" horizontal={false} />
+                  <XAxis type="number" tick={{ fontSize: 12, fill: "rgba(255,255,255,0.7)" }} />
+                  <YAxis dataKey="name" type="category" width={120} tick={{ fontSize: 12, fill: "rgba(255,255,255,0.8)" }} />
                   <Tooltip content={<CustomTooltipBar />} />
                   <Bar dataKey="sold" radius={[0, 8, 8, 0]} barSize={28}>
                     {topProducts.map((_, idx) => (
@@ -251,38 +339,7 @@ function AdminDashboard() {
           </div>
         </div>
       )}
-
-      {/* ===== MENU QUẢN LÝ ===== */}
-      <h4 style={{ fontWeight: 700, color: "#1a202c", marginBottom: "16px" }}>⚙️ Quản lý</h4>
-      <div className="row g-3">
-        {[
-          { icon: "📦", title: "Quản lý sản phẩm", desc: "Thêm, sửa, xóa sản phẩm", link: "/admin/products", color: "#667eea" },
-          { icon: "�", title: "Quản lý danh mục", desc: "Thêm, sửa, xóa danh mục sản phẩm", link: "/admin/categories", color: "#9F7AEA" },
-          { icon: "🛒", title: "Quản lý đơn hàng", desc: "Xem, cập nhật trạng thái đơn hàng", link: "/admin/orders", color: "#ECC94B" },
-          { icon: "🔄", title: "Quản lý đổi trả", desc: "Xử lý yêu cầu đổi trả hàng", link: "/admin/returns", color: "#F56565" },
-          { icon: "🎫", title: "Quản lý khuyến mãi", desc: "Tạo, quản lý mã giảm giá coupon", link: "/admin/coupons", color: "#ED8936" },
-          { icon: "⚡", title: "Quản lý Flash Sale", desc: "Thiết lập chương trình flash sale", link: "/admin/flashsales", color: "#FC8181" },
-          { icon: "👥", title: "Quản lý người dùng", desc: "Xem, phân quyền, xóa tài khoản", link: "/admin/users", color: "#48BB78" },
-        ].map((m, i) => (
-          <div className="col-md-3" key={i}>
-            <div className="card manage-card shadow-sm h-100">
-              <div className="card-body text-center" style={{ padding: "28px" }}>
-                <div style={{
-                  width: "60px", height: "60px", borderRadius: "16px",
-                  background: `${m.color}15`, display: "inline-flex",
-                  alignItems: "center", justifyContent: "center",
-                  fontSize: "28px", marginBottom: "12px"
-                }}>{m.icon}</div>
-                <h5 style={{ fontWeight: 700, color: "#1a202c" }}>{m.title}</h5>
-                <p className="text-muted" style={{ fontSize: "13px" }}>{m.desc}</p>
-                <Link to={m.link} className="btn w-100" style={{
-                  background: m.color, color: "#fff", borderRadius: "12px",
-                  fontWeight: 600, padding: "10px", border: "none"
-                }}>Truy cập →</Link>
-              </div>
-            </div>
-          </div>
-        ))}
+        </div>
       </div>
     </div>
   );

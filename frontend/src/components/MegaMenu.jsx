@@ -28,7 +28,7 @@ const categories = [
 const MegaMenu = () => {
   const [openIdx, setOpenIdx] = useState(null);
   return (
-    <nav className="mega-menu">
+    <nav className="mega-menu" style={{ display: 'none' }}>
       <div className="mega-menu-container">
         <ul className="menu-list">
           {categories.map((cat, idx) => (

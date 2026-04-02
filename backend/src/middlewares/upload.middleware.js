@@ -47,7 +47,7 @@ const fileFilter = (req, file, cb) => {
   if (extname && mimetype) {
     cb(null, true);
   } else {
-    cb("Chỉ cho phép upload ảnh (jpg, jpeg, png, webp)");
+    cb(new Error("Chỉ cho phép upload ảnh (jpg, jpeg, png, webp)"));
   }
 };
 

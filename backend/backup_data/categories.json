@@ -1,0 +1,52 @@
+[
+  {
+    "_id": "69a636b83260efb42bd30ed8",
+    "name": "Son môi",
+    "description": "Các loại son môi: lì, bóng, tint",
+    "icon": "FiHeart",
+    "slug": "son-moi",
+    "createdAt": "2026-03-03T01:17:44.044Z",
+    "updatedAt": "2026-03-03T01:17:44.044Z",
+    "__v": 0
+  },
+  {
+    "_id": "69a636b83260efb42bd30eda",
+    "name": "Kem dưỡng",
+    "description": "Kem dưỡng da mặt, body",
+    "icon": "FiDroplet",
+    "slug": "kem-duong",
+    "createdAt": "2026-03-03T01:17:44.165Z",
+    "updatedAt": "2026-03-03T01:17:44.165Z",
+    "__v": 0
+  },
+  {
+    "_id": "69a636b83260efb42bd30edc",
+    "name": "Nước hoa",
+    "description": "Nước hoa nam, nữ, unisex",
+    "icon": "FiStar",
+    "slug": "nuoc-hoa",
+    "createdAt": "2026-03-03T01:17:44.270Z",
+    "updatedAt": "2026-03-03T01:17:44.270Z",
+    "__v": 0
+  },
+  {
+    "_id": "69a636b83260efb42bd30ede",
+    "name": "Mặt nạ",
+    "description": "Mặt nạ giấy, mặt nạ ngủ",
+    "icon": "FiFeather",
+    "slug": "mat-na",
+    "createdAt": "2026-03-03T01:17:44.366Z",
+    "updatedAt": "2026-03-03T01:17:44.366Z",
+    "__v": 0
+  },
+  {
+    "_id": "69a636b83260efb42bd30ee0",
+    "name": "Trang điểm",
+    "description": "Phấn, mascara, eyeliner",
+    "icon": "FiSun",
+    "slug": "trang-diem",
+    "createdAt": "2026-03-03T01:17:44.450Z",
+    "updatedAt": "2026-03-03T01:17:44.450Z",
+    "__v": 0
+  }
+]

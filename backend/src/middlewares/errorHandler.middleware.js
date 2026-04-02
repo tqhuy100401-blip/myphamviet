@@ -32,7 +32,8 @@ const errorHandler = (err, req, res, next) => {
     // MongoDB validation error
     if (err.name === 'ValidationError') {
       const errors = Object.values(err.errors).map(el => el.message);
-      const message = `Dữ liệu không hợp lệ: ${errors.join('. ')}`;
+      // Chỉ trả về lỗi đầu tiên cho rõ ràng
+      const message = `Dữ liệu không hợp lệ: ${errors[0]}`;
       error = new AppError(message, 400);
     }
 

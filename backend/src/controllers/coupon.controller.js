@@ -15,6 +15,31 @@ exports.createCoupon = catchAsync(async (req, res, next) => {
   });
 });
 
+// Public: Lấy tất cả mã khuyến mãi khả dụng cho khách hàng
+exports.getAvailableCoupons = catchAsync(async (req, res, next) => {
+  const now = new Date();
+  
+  const coupons = await Coupon.find({
+    isActive: true,
+    startDate: { $lte: now },
+    endDate: { $gte: now }
+  })
+    .select('-createdAt -updatedAt -__v')
+    .sort({ value: -1 })
+    .lean();
+
+  // Lọc những coupon chưa đạt giới hạn sử dụng
+  const availableCoupons = coupons.filter(coupon => {
+    if (!coupon.usageLimit) return true;
+    return coupon.usedCount < coupon.usageLimit;
+  });
+
+  res.json({
+    success: true,
+    coupons: availableCoupons
+  });
+});
+
 // Admin: Lấy tất cả mã khuyến mãi
 exports.getAllCoupons = catchAsync(async (req, res, next) => {
   const { isActive, search, page = 1, limit = 20 } = req.query;
@@ -89,6 +114,14 @@ exports.deleteCoupon = catchAsync(async (req, res, next) => {
 exports.validateCoupon = catchAsync(async (req, res, next) => {
   const { code, orderTotal } = req.body;
 
+  if (!code) {
+    return next(new AppError("Vui lòng nhập mã khuyến mãi", 400));
+  }
+
+  if (!orderTotal || orderTotal <= 0) {
+    return next(new AppError("Giá trị đơn hàng không hợp lệ", 400));
+  }
+
   const coupon = await Coupon.findOne({ 
     code: code.toUpperCase(),
     isActive: true 
@@ -109,15 +142,16 @@ exports.validateCoupon = catchAsync(async (req, res, next) => {
     return next(new AppError("Mã khuyến mãi đã hết lượt sử dụng", 400));
   }
 
-  // Check if user already used this coupon
-  if (!coupon.canBeUsedBy(req.user._id)) {
+  // Check if user already used this coupon (only if user is logged in)
+  if (req.user && req.user._id && !coupon.canBeUsedBy(req.user._id)) {
     return next(new AppError("Bạn đã sử dụng mã khuyến mãi này rồi", 400));
   }
 
   // Check minimum order value
-  if (orderTotal < coupon.minOrderValue) {
+  const minOrderValue = coupon.minOrderValue || 0;
+  if (orderTotal < minOrderValue) {
     return next(new AppError(
-      `Đơn hàng tối thiểu ${coupon.minOrderValue.toLocaleString()}đ để sử dụng mã này`,
+      `Đơn hàng tối thiểu ${minOrderValue.toLocaleString('vi-VN')}đ để sử dụng mã này`,
       400
     ));
   }
@@ -162,11 +196,18 @@ exports.getAvailableCoupons = catchAsync(async (req, res, next) => {
   .sort({ createdAt: -1 })
   .lean();
 
-  // Filter coupons that user hasn't used
+  // If user is not authenticated, return the available coupons as-is
+  if (!req.user || !req.user._id) {
+    return res.json({ success: true, coupons });
+  }
+
+  // If user is authenticated, filter out coupons the user already used
+  const userIdStr = req.user._id.toString();
   const availableCoupons = coupons.filter(coupon => {
-    const alreadyUsed = coupon.usedBy?.some(usage => 
-      usage.user.toString() === req.user._id.toString()
-    );
+    // usedBy was excluded via select('-usedBy'), so nothing to check here.
+    // To be safe, if coupon.usedBy exists, check it; otherwise assume user hasn't used it.
+    if (!coupon.usedBy || !Array.isArray(coupon.usedBy)) return true;
+    const alreadyUsed = coupon.usedBy.some(usage => usage.user && usage.user.toString() === userIdStr);
     return !alreadyUsed;
   });
 
@@ -205,6 +246,7 @@ exports.applyCouponToOrder = async (couponCode, userId, orderTotal) => {
   });
 
   return {
+    coupon,
     couponCode: coupon.code,
     discount,
     finalTotal: orderTotal - discount

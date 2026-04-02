@@ -132,6 +132,111 @@ function MyReturns() {
     );
   };
 
+  const getStatusTimeline = (status, createdAt, processedAt) => {
+    const statuses = ['pending', 'approved', 'processing', 'completed'];
+    const currentIndex = statuses.indexOf(status);
+    const isRejected = status === 'rejected';
+    const isCancelled = status === 'cancelled';
+
+    if (isRejected || isCancelled) {
+      return (
+        <div style={{ marginTop: '16px' }}>
+          <div style={{
+            background: '#fee',
+            border: '1px solid #feb2b2',
+            borderRadius: '8px',
+            padding: '12px',
+            color: '#c53030'
+          }}>
+            <FiX size={16} style={{ marginRight: '8px' }} />
+            {isRejected ? 'Yêu cầu đã bị từ chối' : 'Yêu cầu đã hủy'}
+          </div>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{ marginTop: '16px' }}>
+        <div style={{ 
+          display: 'flex', 
+          justifyContent: 'space-between',
+          position: 'relative',
+          padding: '0 8px'
+        }}>
+          {/* Progress bar */}
+          <div style={{
+            position: 'absolute',
+            top: '12px',
+            left: '8px',
+            right: '8px',
+            height: '4px',
+            background: '#e2e8f0',
+            borderRadius: '2px',
+            zIndex: 0
+          }}>
+            <div style={{
+              height: '100%',
+              background: 'linear-gradient(90deg, #667eea, #764ba2)',
+              borderRadius: '2px',
+              width: `${(currentIndex / (statuses.length - 1)) * 100}%`,
+              transition: 'width 0.5s ease'
+            }} />
+          </div>
+
+          {statuses.map((st, idx) => {
+            const isActive = idx <= currentIndex;
+            const labels = ['Chờ duyệt', 'Đã duyệt', 'Đang xử lý', 'Hoàn thành'];
+            return (
+              <div key={st} style={{ 
+                textAlign: 'center', 
+                flex: 1,
+                position: 'relative',
+                zIndex: 1
+              }}>
+                <div style={{
+                  width: '24px',
+                  height: '24px',
+                  borderRadius: '50%',
+                  background: isActive ? 'linear-gradient(135deg, #667eea, #764ba2)' : '#e2e8f0',
+                  color: '#fff',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  margin: '0 auto',
+                  fontSize: '12px',
+                  fontWeight: 700,
+                  border: '3px solid #fff',
+                  boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
+                }}>
+                  {isActive ? '✓' : idx + 1}
+                </div>
+                <div style={{
+                  fontSize: '11px',
+                  marginTop: '8px',
+                  color: isActive ? '#2d3748' : '#a0aec0',
+                  fontWeight: isActive ? 600 : 400
+                }}>
+                  {labels[idx]}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div style={{
+          marginTop: '12px',
+          fontSize: '12px',
+          color: '#718096',
+          textAlign: 'center'
+        }}>
+          Tạo lúc: {new Date(createdAt).toLocaleString('vi-VN')}
+          {processedAt && (
+            <> | Xử lý lúc: {new Date(processedAt).toLocaleString('vi-VN')}</>
+          )}
+        </div>
+      </div>
+    );
+  };
+
   const reasons = [
     "Sản phẩm bị lỗi",
     "Sản phẩm không đúng mô tả",
@@ -385,9 +490,15 @@ function MyReturns() {
 
                       <div className="d-flex gap-3 mb-3">
                         <img
-                          src={returnItem.product.image 
-                            ? `http://localhost:5000/uploads/${returnItem.product.image}`
-                            : "https://via.placeholder.com/80"}
+                          src={
+                            returnItem.product.image
+                              ? (returnItem.product.image.startsWith('data:image')
+                                  ? returnItem.product.image
+                                  : (returnItem.product.image.startsWith('http')
+                                      ? returnItem.product.image
+                                      : `http://localhost:5000/uploads/${returnItem.product.image}`))
+                              : "https://via.placeholder.com/80"
+                          }
                           alt={returnItem.product.name}
                           style={{
                             width: "80px",

@@ -5,6 +5,14 @@ const logger = require("../config/logger");
 
 // Admin: Tạo flash sale mới
 exports.createFlashSale = catchAsync(async (req, res, next) => {
+    // Debug: log thời gian nhận được từ frontend
+    logger.info('[DEBUG] FlashSale - Received startTime:', { raw: req.body.startTime, parsed: new Date(req.body.startTime) });
+    logger.info('[DEBUG] FlashSale - Received endTime:', { raw: req.body.endTime, parsed: new Date(req.body.endTime) });
+    // Log thêm giá trị UTC và local để debug triệt để
+    const debugStart = new Date(req.body.startTime);
+    const debugEnd = new Date(req.body.endTime);
+    logger.info('[DEBUG] FlashSale - startTime UTC:', debugStart.toISOString(), 'local:', debugStart.toLocaleString());
+    logger.info('[DEBUG] FlashSale - endTime UTC:', debugEnd.toISOString(), 'local:', debugEnd.toLocaleString());
   const { product: productId, salePrice, startTime, endTime, name, quantity } = req.body;
 
   // Log request for debugging
@@ -14,42 +22,33 @@ exports.createFlashSale = catchAsync(async (req, res, next) => {
   if (!name || name.trim().length === 0) {
     return next(new AppError("Tên chương trình là bắt buộc", 400));
   }
-
   if (!productId) {
     return next(new AppError("Sản phẩm là bắt buộc", 400));
   }
-
   if (!salePrice || salePrice <= 0) {
     return next(new AppError("Giá sale không hợp lệ", 400));
   }
-
   if (!quantity || quantity <= 0) {
     return next(new AppError("Số lượng không hợp lệ", 400));
   }
-
   if (!startTime || !endTime) {
     return next(new AppError("Thời gian bắt đầu và kết thúc là bắt buộc", 400));
   }
-
   // Validate time
   const start = new Date(startTime);
   const end = new Date(endTime);
-  
   if (isNaN(start.getTime()) || isNaN(end.getTime())) {
     return next(new AppError("Định dạng thời gian không hợp lệ", 400));
   }
-
   if (end <= start) {
     return next(new AppError("Thời gian kết thúc phải sau thời gian bắt đầu", 400));
   }
-
   // Verify product exists
   const product = await Product.findById(productId);
   if (!product) {
     return next(new AppError("Không tìm thấy sản phẩm", 404));
   }
-
-  // Validate sale price
+  // Validate sale price (sau khi đã validate thời gian)
   if (salePrice >= product.price) {
     return next(new AppError(`Giá sale phải thấp hơn giá gốc (${product.price.toLocaleString()}đ)`, 400));
   }
@@ -65,13 +64,13 @@ exports.createFlashSale = catchAsync(async (req, res, next) => {
     return next(new AppError("Sản phẩm này đang có flash sale khác", 400));
   }
 
-  // Create flash sale
+  // Create flash sale (ép originalPrice luôn lấy từ product.price, không lấy từ req.body)
   try {
     const flashSale = await FlashSale.create({
       name: name.trim(),
       description: req.body.description ? req.body.description.trim() : '',
       product: productId,
-      originalPrice: product.price,
+      originalPrice: product.price, // luôn lấy từ sản phẩm
       salePrice: Number(salePrice),
       quantity: Number(quantity),
       maxPerUser: Number(req.body.maxPerUser) || 5,
@@ -95,13 +94,11 @@ exports.createFlashSale = catchAsync(async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Error creating flash sale', { error: error.message, stack: error.stack });
-    
     // Handle Mongoose validation errors
     if (error.name === 'ValidationError') {
       const messages = Object.values(error.errors).map(err => err.message);
       return next(new AppError(messages.join(', '), 400));
     }
-    
     throw error;
   }
 });
@@ -148,25 +145,53 @@ exports.getAllFlashSales = catchAsync(async (req, res, next) => {
 
 // Admin: Cập nhật flash sale
 exports.updateFlashSale = catchAsync(async (req, res, next) => {
-  const flashSale = await FlashSale.findByIdAndUpdate(
-    req.params.id,
-    req.body,
-    { new: true, runValidators: true }
-  ).populate('product', 'name image');
-
-  if (!flashSale) {
+  // Lấy flash sale hiện tại
+  const currentFlashSale = await FlashSale.findById(req.params.id);
+  if (!currentFlashSale) {
     return next(new AppError("Không tìm thấy flash sale", 404));
   }
 
+  // Lấy sản phẩm liên kết
+  const product = await require('../models/Product').findById(currentFlashSale.product);
+  if (!product) {
+    return next(new AppError("Không tìm thấy sản phẩm liên kết", 404));
+  }
+
+  // Gán lại originalPrice theo giá sản phẩm hiện tại
+  currentFlashSale.originalPrice = product.price;
+
+  // Nếu có salePrice, kiểm tra hợp lệ
+  if (req.body.salePrice && Number(req.body.salePrice) >= product.price) {
+    return next(new AppError(`Giá sale phải thấp hơn giá gốc (${product.price.toLocaleString()}đ)`, 400));
+  }
+
+  // Gán các trường mới từ req.body
+  const updatableFields = [
+    'name', 'description', 'salePrice', 'quantity', 'maxPerUser', 'startTime', 'endTime', 'isActive'
+  ];
+  updatableFields.forEach(field => {
+    if (req.body[field] !== undefined) {
+      if (field === 'startTime' || field === 'endTime') {
+        currentFlashSale[field] = new Date(req.body[field]);
+      } else {
+        currentFlashSale[field] = req.body[field];
+      }
+    }
+  });
+
+  // Lưu lại để chạy đầy đủ validator
+  await currentFlashSale.save();
+  await currentFlashSale.populate('product', 'name image');
+
   logger.info('Flash sale updated', { 
-    flashSaleId: flashSale._id,
+    flashSaleId: currentFlashSale._id,
     adminId: req.user._id 
   });
 
   res.json({
     success: true,
     message: "Cập nhật flash sale thành công",
-    flashSale
+    flashSale: currentFlashSale
   });
 });
 

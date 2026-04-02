@@ -19,7 +19,7 @@ function ProductDetail() {
 
   // Scroll to top when component mounts or id changes
   useEffect(() => {
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    window.scrollTo({ top: 0, behavior: 'instant' });
   }, [id]);
 
   const { data: product, isLoading } = useQuery({
@@ -50,6 +50,27 @@ function ProductDetail() {
 
   const reviews = reviewsData?.reviews || [];
   const canReview = canReviewData?.canReview || false;
+
+  // Lấy sản phẩm liên quan (cùng danh mục)
+  const categoryId = product?.category?._id || product?.category;
+  
+  const { data: relatedProductsData } = useQuery({
+    queryKey: ["related-products", categoryId, id],
+    queryFn: async () => {
+      if (!categoryId) return { products: [] };
+      const response = await axiosClient.get(`/products`, {
+        params: { category: categoryId, limit: 8 }
+      });
+      console.log('Related products response:', response.data);
+      return response.data;
+    },
+    enabled: !!categoryId,
+  });
+
+  const relatedProducts = (relatedProductsData?.products || []).filter(p => p._id !== id);
+  console.log('Product category:', product?.category);
+  console.log('Category ID:', categoryId);
+  console.log('Related products:', relatedProducts);
 
   const addToCart = async () => {
     const token = localStorage.getItem("token");
@@ -330,7 +351,7 @@ function ProductDetail() {
           </h3>
 
           {/* Review Form */}
-          {token && canReview && (
+          {token && (canReview || editingReview) && (
             <div id="review-form" className="card shadow-sm mb-4">
               <div className="card-body">
                 <h5 className="card-title">
@@ -449,6 +470,106 @@ function ProductDetail() {
             )}
           </div>
         </div>
+
+        {/* Sản phẩm liên quan */}
+        {relatedProducts && relatedProducts.length > 0 && (
+          <div className="card shadow-sm mt-4">
+            <div className="card-body">
+              <h4 className="mb-4" style={{ fontWeight: 700, color: "#2d3748" }}>
+                <FiTag style={{ marginRight: "8px", color: "#667eea" }} />
+                Sản phẩm liên quan
+              </h4>
+              <div className="row">
+                {relatedProducts.slice(0, 4).map((relatedProduct) => (
+                  <div key={relatedProduct._id} className="col-md-6 col-lg-3 mb-4">
+                    <div 
+                      className="card h-100 shadow-sm" 
+                      style={{ 
+                        cursor: "pointer",
+                        transition: "all 0.3s",
+                        border: "1px solid #e2e8f0"
+                      }}
+                      onMouseEnter={(e) => {
+                        e.currentTarget.style.transform = "translateY(-4px)";
+                        e.currentTarget.style.boxShadow = "0 10px 25px rgba(0,0,0,0.15)";
+                      }}
+                      onMouseLeave={(e) => {
+                        e.currentTarget.style.transform = "translateY(0)";
+                        e.currentTarget.style.boxShadow = "";
+                      }}
+                      onClick={() => navigate(`/product/${relatedProduct._id}`)}
+                    >
+                      <div style={{ position: "relative", paddingTop: "100%", overflow: "hidden" }}>
+                        <img
+                          src={getImageUrl(relatedProduct.image)}
+                          alt={relatedProduct.name}
+                          style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover"
+                          }}
+                          onError={(e) => {
+                            e.target.src = "https://via.placeholder.com/300x300?text=No+Image";
+                          }}
+                        />
+                        {relatedProduct.stock === 0 && (
+                          <div style={{
+                            position: "absolute",
+                            top: 0,
+                            left: 0,
+                            right: 0,
+                            bottom: 0,
+                            background: "rgba(0,0,0,0.6)",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            color: "#fff",
+                            fontWeight: 700,
+                            fontSize: "18px"
+                          }}>
+                            HẾT HÀNG
+                          </div>
+                        )}
+                      </div>
+                      <div className="card-body">
+                        <h6 className="mb-2" style={{
+                          overflow: "hidden",
+                          textOverflow: "ellipsis",
+                          display: "-webkit-box",
+                          WebkitLineClamp: 2,
+                          WebkitBoxOrient: "vertical",
+                          minHeight: "48px",
+                          lineHeight: "24px"
+                        }}>
+                          {relatedProduct.name}
+                        </h6>
+                        <div className="d-flex align-items-center gap-1 mb-2">
+                          <FiStar size={14} color="#fbbf24" fill="#fbbf24" />
+                          <span className="small text-muted">
+                            {relatedProduct.averageRating?.toFixed(1) || "5.0"} ({relatedProduct.reviewCount || 0})
+                          </span>
+                        </div>
+                        <div className="d-flex justify-content-between align-items-center">
+                          <div>
+                            <div className="fw-bold text-danger" style={{ fontSize: "18px" }}>
+                              {relatedProduct.price?.toLocaleString("vi-VN")}đ
+                            </div>
+                            <small className="text-success">
+                              <FiBox size={12} /> Còn {relatedProduct.stock}
+                            </small>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

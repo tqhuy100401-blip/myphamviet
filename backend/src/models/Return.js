@@ -25,12 +25,11 @@ const returnSchema = new mongoose.Schema({
     type: String,
     required: true,
     enum: [
-      "Sản phẩm bị lỗi",
-      "Sản phẩm không đúng mô tả",
-      "Giao sai sản phẩm",
-      "Sản phẩm hư hỏng khi nhận",
-      "Không còn nhu cầu",
-      "Khác"
+      "defective",
+      "wrong_item",
+      "not_as_described",
+      "quality_issue",
+      "other"
     ]
   },
   description: {

@@ -7,9 +7,7 @@ const API_URL = import.meta.env.VITE_API_URL || "http://localhost:5002/api";
 const axiosClient = axios.create({
   baseURL: API_URL,
   timeout: 30000, // 30 seconds timeout
-  headers: {
-    'Content-Type': 'application/json',
-  }
+  // Không set Content-Type mặc định - để axios tự xử lý
 });
 
 axiosClient.interceptors.request.use(
@@ -19,13 +17,21 @@ axiosClient.interceptors.request.use(
       config.headers.Authorization = `Bearer ${token}`;
     }
     
-    // Log request
-    logger.api(config.method, config.url);
+    // Nếu data là FormData, KHÔNG set Content-Type (để browser tự set với boundary)
+    if (config.data instanceof FormData) {
+      // Không làm gì cả - để axios/browser tự động set
+      console.log('📦 Detected FormData - letting browser set Content-Type');
+    } else {
+      // Nếu không phải FormData, set JSON
+      config.headers['Content-Type'] = 'application/json';
+    }
+    
+    // logger.api(config.method, config.url); // Tạm tắt log để tránh crash
     
     return config;
   },
   (error) => {
-    logger.error('Request error:', error);
+    // logger.error('Request error:', error);
     return Promise.reject(error);
   }
 );
@@ -33,8 +39,7 @@ axiosClient.interceptors.request.use(
 // Response interceptor
 axiosClient.interceptors.response.use(
   (response) => {
-    // Log response
-    logger.apiResponse(response.config.method, response.config.url, response.data);
+    // logger.apiResponse(response.config.method, response.config.url, response.data);
     return response;
   },
   (error) => {
@@ -98,8 +103,7 @@ axiosClient.interceptors.response.use(
         toast.error(data?.message || "Đã có lỗi xảy ra!");
     }
 
-    // Log error
-    logger.apiError(error.config?.method, error.config?.url, error.response);
+    // logger.apiError(error.config?.method, error.config?.url, error.response);
 
     return Promise.reject(error);
   }

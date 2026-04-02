@@ -1,7 +1,18 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcrypt");
+
+  const mongoose = require("mongoose");
+  const bcrypt = require("bcrypt");
 
 const userSchema = new mongoose.Schema({
+  addresses: {
+    type: [
+      {
+        name: { type: String, required: true },
+        phone: { type: String, required: true },
+        address: { type: String, required: true }
+      }
+    ],
+    default: []
+  },
   name: {
     type: String,
     required: [true, "Tên là bắt buộc"],
@@ -35,6 +46,16 @@ const userSchema = new mongoose.Schema({
     type: String,
     trim: true,
     match: [/^[0-9]{10,11}$/, "Số điện thoại không hợp lệ"]
+  },
+  avatar: {
+    type: String,
+    default: ""
+  },
+  // Thông tin giao hàng mặc định
+  defaultShippingInfo: {
+    customerName: { type: String, default: "" },
+    phone: { type: String, default: "" },
+    address: { type: String, default: "" }
   },
   isVerified: {
     type: Boolean,

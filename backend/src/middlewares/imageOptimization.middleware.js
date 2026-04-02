@@ -9,8 +9,20 @@ const optimizeImage = async (req, res, next) => {
   }
 
   try {
+    // Skip optimization if using Cloudinary (file.path is URL)
+    if (req.file.path && req.file.path.includes('cloudinary')) {
+      console.log('☁️ Skipping optimization - using Cloudinary');
+      return next();
+    }
+
     const filename = req.file.filename;
     const filepath = req.file.path;
+    
+    // Check if filepath exists and is a local file
+    if (!filepath || !filename) {
+      return next();
+    }
+
     const fileExt = path.extname(filename).toLowerCase();
     
     // Only process images

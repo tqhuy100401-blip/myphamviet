@@ -1,0 +1,380 @@
+[
+  {
+    "_id": "69a59d166384ca182496ce00",
+    "name": "Son Dior Rouge 999",
+    "price": 850000,
+    "description": "Son môi Dior Rouge 999 màu đỏ truyền thống, lâu trôi, dưỡng môi. Công thức mới giúp môi mềm mịn, không khô.",
+    "image": "1771386903965.jpg",
+    "category": "Trang điểm",
+    "stock": 50,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.015Z",
+    "updatedAt": "2026-03-02T14:22:14.015Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce01",
+    "name": "Kem chống nắng La Roche-Posay SPF50",
+    "price": 450000,
+    "description": "Kem chống nắng cho da nhạy cảm, không gây nhờn, SPF50+ PA++++. Bảo vệ da khỏi tia UV hiệu quả.",
+    "image": "data:image/jpeg;base64,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",
+    "category": "Chăm sóc da",
+    "stock": 100,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T16:05:11.080Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce02",
+    "name": "Serum Vitamin C The Ordinary",
+    "price": 320000,
+    "description": "Serum Vitamin C giúp làm sáng da, mờ thâm nám hiệu quả. Phù hợp mọi loại da.",
+    "image": "1770470008414.webp",
+    "category": "Chăm sóc da",
+    "stock": 80,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T14:22:14.017Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce03",
+    "name": "Nước hoa Chanel No.5",
+    "price": 2500000,
+    "description": "Nước hoa Chanel No.5 hương thơm sang trọng, quyến rũ. Mùi hương cổ điển của phụ nữ hiện đại.",
+    "image": "1770470010019.webp",
+    "category": "Nước hoa",
+    "stock": 30,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T14:22:14.017Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce04",
+    "name": "Phấn phủ Innisfree No Sebum",
+    "price": 180000,
+    "description": "Phấn phủ kiềm dầu hiệu quả, giúp da mịn màng cả ngày. Không gây bít tắc lỗ chân lông.",
+    "image": "1770470010258.webp",
+    "category": "Trang điểm",
+    "stock": 120,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T14:22:14.017Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce05",
+    "name": "Sữa rửa mặt CeraVe Foaming",
+    "price": 280000,
+    "description": "Sữa rửa mặt tạo bọt nhẹ nhàng, làm sạch sâu mà không làm khô da. Chứa ceramides giúp phục hồi da.",
+    "image": "1770470008414.webp",
+    "category": "Chăm sóc da",
+    "stock": 95,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T14:22:14.017Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce06",
+    "name": "Cushion LANEIGE BB Neo",
+    "price": 680000,
+    "description": "Phấn nước cushion che phủ tốt, tự nhiên, lâu trôi. Chứa dưỡng chất giúp dưỡng ẩm cho da.",
+    "image": "1771386903965.jpg",
+    "category": "Trang điểm",
+    "stock": 60,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T14:22:14.017Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce07",
+    "name": "Mặt nạ Mediheal N.M.F Aquaring",
+    "price": 35000,
+    "description": "Mặt nạ giấy cấp ẩm chuyên sâu, phục hồi da khô. Sử dụng 2-3 lần/tuần cho làn da căng mọng.",
+    "image": "1770470008414.webp",
+    "category": "Chăm sóc da",
+    "stock": 200,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T14:22:14.017Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce08",
+    "name": "Xịt khoáng Avène Thermal Water",
+    "price": 320000,
+    "description": "Nước khoáng xịt dịu nhẹ, làm dịu da nhạy cảm, cân bằng độ ẩm. Có thể dùng mọi lúc trong ngày.",
+    "image": "1770212691288.webp",
+    "category": "Chăm sóc da",
+    "stock": 75,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T14:22:14.017Z"
+  },
+  {
+    "_id": "69a59d166384ca182496ce09",
+    "name": "Mascara Maybelline Lash Sensational",
+    "price": 220000,
+    "description": "Mascara giúp mi dài, cong vút, không lem. Công thức không thấm nước, giữ được cả ngày.",
+    "image": "1770470010258.webp",
+    "category": "Trang điểm",
+    "stock": 85,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:22:14.017Z",
+    "updatedAt": "2026-03-02T14:22:14.017Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d07d",
+    "name": "Son Dior Rouge 999",
+    "price": 850000,
+    "description": "Son môi Dior Rouge 999 màu đỏ truyền thống, lâu trôi, dưỡng môi. Công thức mới giúp môi mềm mịn, không khô.",
+    "image": "https://images.unsplash.com/photo-1586495777744-4413f21062fa?w=500",
+    "category": "Trang điểm",
+    "stock": 50,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.387Z",
+    "updatedAt": "2026-03-02T14:33:03.387Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d07e",
+    "name": "Kem chống nắng La Roche-Posay SPF50",
+    "price": 450000,
+    "description": "Kem chống nắng cho da nhạy cảm, không gây nhờn, SPF50+ PA++++. Bảo vệ da khỏi tia UV hiệu quả.",
+    "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500",
+    "category": "Chăm sóc da",
+    "stock": 100,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.388Z",
+    "updatedAt": "2026-03-02T14:33:03.388Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d07f",
+    "name": "Serum Vitamin C The Ordinary",
+    "price": 320000,
+    "description": "Serum Vitamin C giúp làm sáng da, mờ thâm nám hiệu quả. Phù hợp mọi loại da.",
+    "image": "https://images.unsplash.com/photo-1620916566398-39f1143ab7be?w=500",
+    "category": "Chăm sóc da",
+    "stock": 80,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.388Z",
+    "updatedAt": "2026-03-02T14:33:03.388Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d080",
+    "name": "Nước hoa Chanel No.5",
+    "price": 2500000,
+    "description": "Nước hoa Chanel No.5 hương thơm sang trọng, quyến rũ. Mùi hương cổ điển của phụ nữ hiện đại.",
+    "image": "https://images.unsplash.com/photo-1541643600914-78b084683601?w=500",
+    "category": "Nước hoa",
+    "stock": 30,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.389Z",
+    "updatedAt": "2026-03-02T14:39:10.716Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d081",
+    "name": "Phấn phủ Innisfree No Sebum",
+    "price": 180000,
+    "description": "Phấn phủ kiềm dầu hiệu quả, giúp da mịn màng cả ngày. Không gây bít tắc lỗ chân lông.",
+    "image": "https://images.unsplash.com/photo-1512496015851-a90fb38ba796?w=500",
+    "category": "Trang điểm",
+    "stock": 120,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.389Z",
+    "updatedAt": "2026-03-02T14:33:03.389Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d082",
+    "name": "Sữa rửa mặt CeraVe Foaming",
+    "price": 280000,
+    "description": "Sữa rửa mặt tạo bọt nhẹ nhàng, làm sạch sâu mà không làm khô da. Chứa ceramides giúp phục hồi da.",
+    "image": "https://images.unsplash.com/photo-1556229010-6c3f2c9ca5f8?w=500",
+    "category": "Chăm sóc da",
+    "stock": 95,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.389Z",
+    "updatedAt": "2026-03-02T14:33:03.389Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d083",
+    "name": "Cushion LANEIGE BB Neo",
+    "price": 680000,
+    "description": "Phấn nước cushion che phủ tốt, tự nhiên, lâu trôi. Chứa dưỡng chất giúp dưỡng ẩm cho da.",
+    "image": "https://images.unsplash.com/photo-1522335789203-aabd1fc54bc9?w=500",
+    "category": "Trang điểm",
+    "stock": 60,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.389Z",
+    "updatedAt": "2026-03-02T14:33:03.389Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d084",
+    "name": "Mặt nạ Mediheal N.M.F Aquaring",
+    "price": 35000,
+    "description": "Mặt nạ giấy cấp ẩm chuyên sâu, phục hồi da khô. Sử dụng 2-3 lần/tuần cho làn da căng mọng.",
+    "image": "https://images.unsplash.com/photo-1608248543803-ba4f8c70ae0b?w=500",
+    "category": "Chăm sóc da",
+    "stock": 200,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.389Z",
+    "updatedAt": "2026-03-02T14:33:03.389Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d085",
+    "name": "Xịt khoáng Avène Thermal Water",
+    "price": 320000,
+    "description": "Nước khoáng xịt dịu nhẹ, làm dịu da nhạy cảm, cân bằng độ ẩm. Có thể dùng mọi lúc trong ngày.",
+    "image": "https://images.unsplash.com/photo-1571875257727-256c39da42af?w=500",
+    "category": "Chăm sóc da",
+    "stock": 75,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.389Z",
+    "updatedAt": "2026-03-02T14:33:03.389Z"
+  },
+  {
+    "_id": "69a59f9f891b3e629af2d086",
+    "name": "Mascara Maybelline Lash Sensational",
+    "price": 220000,
+    "description": "Mascara giúp mi dài, cong vút, không lem. Công thức không thấm nước, giữ được cả ngày.",
+    "image": "https://images.unsplash.com/photo-1631214524020-7e18db9a8f92?w=500",
+    "category": "Trang điểm",
+    "stock": 85,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "__v": 0,
+    "createdAt": "2026-03-02T14:33:03.389Z",
+    "updatedAt": "2026-03-02T14:33:03.389Z"
+  },
+  {
+    "_id": "69a5bd2558cc804f8c0256fb",
+    "name": "ghhghj",
+    "price": 555,
+    "description": "",
+    "image": "https://images.unsplash.com/photo-1556228720-195a672e8a03?w=500",
+    "category": "",
+    "stock": 6,
+    "averageRating": 0,
+    "reviewCount": 0,
+    "discount": {
+      "type": null,
+      "value": 0
+    },
+    "createdAt": "2026-03-02T16:39:01.169Z",
+    "updatedAt": "2026-03-02T16:39:01.169Z",
+    "__v": 0
+  }
+]

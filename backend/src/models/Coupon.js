@@ -85,9 +85,11 @@ couponSchema.virtual('isValid').get(function() {
 
 // Method to check if user can use this coupon
 couponSchema.methods.canBeUsedBy = function(userId) {
+  if (!userId) return true; // Allow if no userId provided
+  
   // Check if user has already used this coupon
   const alreadyUsed = this.usedBy.some(usage => 
-    usage.user.toString() === userId.toString()
+    usage.user && usage.user.toString() === userId.toString()
   );
   return !alreadyUsed;
 };
@@ -98,8 +100,9 @@ couponSchema.methods.applyCoupon = function(orderTotal) {
     throw new Error("Mã khuyến mãi không hợp lệ");
   }
 
-  if (orderTotal < this.minOrderValue) {
-    throw new Error(`Đơn hàng tối thiểu ${this.minOrderValue.toLocaleString()}đ`);
+  const minOrderValue = this.minOrderValue || 0;
+  if (orderTotal < minOrderValue) {
+    throw new Error(`Đơn hàng tối thiểu ${minOrderValue.toLocaleString('vi-VN')}đ`);
   }
 
   if (this.usageLimit !== null && this.usedCount >= this.usageLimit) {

@@ -7,11 +7,13 @@ const { catchAsync, AppError } = require("../middlewares/errorHandler.middleware
 const logger = require("../config/logger");
 const { clearCacheByPattern } = require("../middlewares/cache.middleware");
 const emailService = require("../services/email.service");
+const { applyCouponToOrder } = require("./coupon.controller");
+const notificationController = require("./notification.controller");
 
 // Tạo đơn hàng từ giỏ hàng
 exports.createOrder = catchAsync(async (req, res, next) => {
   const userId = req.user.id;
-  const { customerName, phone, shippingAddress, note, selectedProductIds } = req.body;
+  const { customerName, phone, shippingAddress, note, selectedProductIds, couponCode, paymentMethod } = req.body;
   logger.info(
     `Creating order ${JSON.stringify({ userId, body: req.body })}`
   );
@@ -77,6 +79,21 @@ exports.createOrder = catchAsync(async (req, res, next) => {
       await product.save();
     }
 
+    // Áp dụng coupon nếu có
+    let discount = 0;
+    let appliedCoupon = null;
+    if (couponCode) {
+      try {
+        const couponResult = await applyCouponToOrder(couponCode, userId, totalPrice);
+        discount = couponResult.discount;
+        appliedCoupon = couponResult.coupon;
+        totalPrice = Math.max(0, totalPrice - discount);
+      } catch (err) {
+        logger.warn(`Coupon error: ${err.message}`);
+        // Không dừng đơn hàng, chỉ log lỗi
+      }
+    }
+
     // Tạo một đối tượng Order mới
     const order = new Order({
       user: userId,
@@ -86,6 +103,10 @@ exports.createOrder = catchAsync(async (req, res, next) => {
       phone,
       shippingAddress,
       note,
+      coupon: appliedCoupon ? appliedCoupon._id : null,
+      discount: discount,
+      paymentMethod: paymentMethod || 'cod',
+      paymentStatus: 'pending'
     });
 
     // Lưu đơn hàng vào cơ sở dữ liệu
@@ -103,23 +124,7 @@ exports.createOrder = catchAsync(async (req, res, next) => {
       await Cart.findByIdAndDelete(cart._id);
     }
 
-    // Lấy thông tin user để gửi email
-    const user = await User.findById(userId).select('name email');
-    
-    // Gửi email xác nhận đơn hàng (async, không chờ)
-    if (user && user.email) {
-      emailService.sendOrderConfirmation({
-        user: { email: user.email },
-        items: orderItems,
-        totalPrice,
-        customerName,
-        phone,
-        shippingAddress,
-        orderNumber: order._id.toString().slice(-8).toUpperCase()
-      }).catch(err => {
-        logger.error(`Failed to send order confirmation email: ${err.message}`);
-      });
-    }
+    // KHÔNG gửi email ngay khi tạo đơn - chỉ gửi khi admin xác nhận
 
     // Trả về phản hồi thành công
     res.status(201).json({
@@ -236,8 +241,125 @@ exports.updateOrderStatus = catchAsync(async (req, res, next) => {
     newStatus: status 
   });
 
+  // Tạo thông báo cho user
+  const orderNumber = order._id.toString().slice(-6).toUpperCase();
+  try {
+    await notificationController.notifyOrderStatus(
+      order.user,
+      order._id,
+      status,
+      orderNumber
+    );
+  } catch (notifError) {
+    logger.error(`Failed to create notification: ${notifError.message}`);
+  }
+
+  // Gửi email khi admin xác nhận, đang giao, hoặc đã giao đơn hàng
+  if (['confirmed', 'shipping', 'delivered'].includes(status)) {
+    try {
+      const populatedOrder = await Order.findById(order._id)
+        .populate('user', 'name email')
+        .populate('items.product', 'name price image');
+      if (populatedOrder && populatedOrder.user && populatedOrder.user.email) {
+        if (status === 'confirmed') {
+          await emailService.sendOrderConfirmation({
+            user: { email: populatedOrder.user.email },
+            items: populatedOrder.items,
+            totalPrice: populatedOrder.totalPrice,
+            customerName: populatedOrder.customerName,
+            phone: populatedOrder.phone,
+            shippingAddress: populatedOrder.shippingAddress,
+            orderNumber: populatedOrder._id.toString().slice(-8).toUpperCase()
+          });
+          logger.info(`Order confirmation email sent for order ${order._id}`);
+        } else {
+          await emailService.sendOrderStatusUpdate({
+            user: { email: populatedOrder.user.email },
+            orderNumber: populatedOrder._id.toString().slice(-8).toUpperCase(),
+            status,
+            customerName: populatedOrder.customerName
+          });
+          logger.info(`Order status update email sent for order ${order._id} - status: ${status}`);
+        }
+      }
+    } catch (emailError) {
+      logger.error(`Failed to send order status email: ${emailError.message}`);
+      // Không throw error, vẫn trả về success cho việc update status
+    }
+  }
+
   // Clear cache
   clearCacheByPattern('orders');
 
   res.json({ message: "Cập nhật trạng thái thành công", order });
 });
+
+// User hủy đơn hàng (chỉ được hủy khi status = "pending")
+exports.cancelOrder = catchAsync(async (req, res, next) => {
+  const { orderId } = req.params;
+  const userId = req.user.id;
+
+  const order = await Order.findOne({ _id: orderId, user: userId });
+
+  if (!order) {
+    return next(new AppError('Không tìm thấy đơn hàng', 404));
+  }
+
+  // Chỉ cho phép hủy đơn ở trạng thái "pending"
+  if (order.status !== 'pending') {
+    return next(new AppError('Chỉ có thể hủy đơn hàng đang chờ xác nhận', 400));
+  }
+
+  // Hoàn trả số lượng sản phẩm vào kho
+  for (const item of order.items) {
+    await Product.findByIdAndUpdate(item.product, {
+      $inc: { stock: item.quantity }
+    });
+  }
+
+  // Cập nhật trạng thái đơn hàng
+  order.status = 'cancelled';
+  order.statusHistory.push({
+    status: 'cancelled',
+    time: new Date(),
+    note: 'Đơn hàng bị hủy bởi khách hàng'
+  });
+  await order.save();
+
+  // Clear cache
+  clearCacheByPattern('orders');
+
+  res.json({ 
+    status: 'success',
+    message: "Đã hủy đơn hàng thành công", 
+    data: { order }
+  });
+});
+
+// User xóa đơn hàng (chỉ xóa được đơn đã hủy hoặc đã giao)
+exports.deleteOrder = catchAsync(async (req, res, next) => {
+  const { orderId } = req.params;
+  const userId = req.user.id;
+
+  const order = await Order.findOne({ _id: orderId, user: userId });
+
+  if (!order) {
+    return next(new AppError('Không tìm thấy đơn hàng', 404));
+  }
+
+  // Chỉ cho phép xóa đơn đã hủy hoặc đã giao
+  if (order.status !== 'cancelled' && order.status !== 'delivered') {
+    return next(new AppError('Chỉ có thể xóa đơn hàng đã hoàn thành hoặc đã hủy', 400));
+  }
+
+  await Order.findByIdAndDelete(orderId);
+
+  // Clear cache
+  clearCacheByPattern('orders');
+
+  res.json({ 
+    status: 'success',
+    message: "Đã xóa đơn hàng thành công"
+  });
+});
+

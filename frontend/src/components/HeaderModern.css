@@ -61,6 +61,62 @@
   font-size: 1.2rem;
   margin-left: 1vw;
 }
+
+/* Notification Link */
+.notification-link {
+  position: relative;
+  display: flex;
+  align-items: center;
+  background: none;
+  border: none;
+  color: var(--main-color);
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 1.2rem;
+  padding: 8px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.notification-link:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.notification-icon {
+  transition: transform .2s cubic-bezier(.4,0,.2,1);
+}
+
+.notification-link:hover .notification-icon {
+  transform: scale(1.15);
+  animation: bellRing 0.5s ease;
+}
+
+.notification-badge {
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: #ef4444;
+  color: #fff;
+  border-radius: 12px;
+  min-width: 20px;
+  height: 20px;
+  font-size: 11px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 6px;
+  box-shadow: 0 2px 8px rgba(239, 68, 68, 0.4);
+  z-index: 1000;
+  animation: popBadge .4s cubic-bezier(.4,0,.2,1);
+}
+
+@keyframes bellRing {
+  0%, 100% { transform: rotate(0deg); }
+  10%, 30%, 50%, 70%, 90% { transform: rotate(-10deg); }
+  20%, 40%, 60%, 80% { transform: rotate(10deg); }
+}
+
 .cart-badge {
   position: absolute;
   top: -8px;

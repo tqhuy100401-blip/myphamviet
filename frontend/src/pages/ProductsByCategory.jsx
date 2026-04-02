@@ -1,15 +1,18 @@
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useSearchParams, Link } from "react-router-dom";
+import { useQuery, useQueryClient, useMutation } from "@tanstack/react-query";
+import { useSearchParams, useParams, Link } from "react-router-dom";
 import axiosClient from "../api/axiosClient";
 import { FiShoppingCart, FiHeart } from "react-icons/fi";
 import { toast } from "react-toastify";
 import { getImageUrl } from "../utils/helpers";
 import "../components/ProductCard.css";
+import { useState } from "react";
 
 function ProductsByCategory() {
   const [searchParams] = useSearchParams();
+  const { id } = useParams(); // Get category ID from URL
   const categorySlug = searchParams.get("category");
   const queryClient = useQueryClient();
+  const token = localStorage.getItem("token");
 
   const { data: categories = [] } = useQuery({
     queryKey: ["categories"],
@@ -29,16 +32,54 @@ function ProductsByCategory() {
     queryFn: () => axiosClient.get("/flashsales/live").then(res => res.data.flashSales || []),
   });
 
+  // Fetch wishlist
+  const { data: wishlistData = [] } = useQuery({
+    queryKey: ["wishlist"],
+    queryFn: () => axiosClient.get("/wishlist").then(res => res.data.products || []),
+    enabled: !!token,
+  });
+
+  // Helper function to check if product is in wishlist
+  const isInWishlist = (productId) => {
+    return wishlistData.some(p => p._id === productId);
+  };
+
+  // Wishlist mutations
+  const addToWishlistMutation = useMutation({
+    mutationFn: (productId) => axiosClient.post("/wishlist/add", { productId }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      toast.success("❤️ Đã thêm vào danh sách yêu thích!");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Lỗi khi thêm vào yêu thích");
+    },
+  });
+
+  const removeFromWishlistMutation = useMutation({
+    mutationFn: (productId) => axiosClient.delete(`/wishlist/remove/${productId}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["wishlist"] });
+      toast.success("Đã xóa khỏi danh sách yêu thích!");
+    },
+    onError: (err) => {
+      toast.error(err.response?.data?.message || "Lỗi khi xóa khỏi yêu thích");
+    },
+  });
+
   // Helper function to get flash sale price for a product
   const getFlashSalePrice = (productId) => {
     const flashSale = flashSales.find(fs => fs.product._id === productId || fs.product === productId);
     return flashSale ? flashSale.salePrice : null;
   };
   
-  // Find selected category
-  const selectedCategory = categories.find(c => c.slug === categorySlug);
+  // Find selected category - support both ID and slug
+  const selectedCategory = id 
+    ? categories.find(c => c._id === id)
+    : categories.find(c => c.slug === categorySlug);
+  
   const filteredProducts = selectedCategory 
-    ? products.filter(p => p.category === selectedCategory.name)
+    ? products.filter(p => p.category?._id === selectedCategory._id || p.category === selectedCategory._id || p.category === selectedCategory.name)
     : products;
 
   const handleAddToCart = async (productId) => {
@@ -190,8 +231,25 @@ function ProductsByCategory() {
                   <button className="btn-add-cart" onClick={() => handleAddToCart(product._id)}>
                     <FiShoppingCart size={16} /> Thêm
                   </button>
-                  <button className="btn-wishlist">
-                    <FiHeart size={16} />
+                  <button 
+                    className="btn-wishlist"
+                    onClick={() => {
+                      if (!token) {
+                        toast.warn("Vui lòng đăng nhập để thêm vào yêu thích!");
+                        return;
+                      }
+                      if (isInWishlist(product._id)) {
+                        removeFromWishlistMutation.mutate(product._id);
+                      } else {
+                        addToWishlistMutation.mutate(product._id);
+                      }
+                    }}
+                    style={{
+                      color: isInWishlist(product._id) ? '#e53e3e' : '#999',
+                      fill: isInWishlist(product._id) ? '#e53e3e' : 'none'
+                    }}
+                  >
+                    <FiHeart size={16} fill={isInWishlist(product._id) ? '#e53e3e' : 'none'} />
                   </button>
                 </div>
               </div>

@@ -1,16 +1,19 @@
 const nodemailer = require('nodemailer');
 const logger = require('../config/logger');
 
+// Cache transporter to avoid repeated verify calls during runtime
+let cachedTransporter = null;
+let transporterType = null; // 'smtp' | 'ethereal'
+
 // Cấu hình transporter
 const createTransporter = async () => {
-  // Nếu không có EMAIL_USER hoặc EMAIL_PASSWORD, dùng Ethereal (test account)
+  if (cachedTransporter) return cachedTransporter;
+
+  // If no SMTP credentials, immediately use Ethereal for local testing
   if (!process.env.EMAIL_USER || !process.env.EMAIL_PASSWORD) {
     logger.warn('⚠️ EMAIL_USER/PASSWORD not configured. Using Ethereal test account...');
-    
-    // Tạo test account tự động
     const testAccount = await nodemailer.createTestAccount();
-    
-    return nodemailer.createTransport({
+    cachedTransporter = nodemailer.createTransport({
       host: 'smtp.ethereal.email',
       port: 587,
       secure: false,
@@ -19,16 +22,43 @@ const createTransporter = async () => {
         pass: testAccount.pass
       }
     });
+    transporterType = 'ethereal';
+    return cachedTransporter;
   }
 
-  // Dùng Gmail thật
-  return nodemailer.createTransport({
-    service: 'gmail',
-    auth: {
-      user: process.env.EMAIL_USER,
-      pass: process.env.EMAIL_PASSWORD
-    }
-  });
+  // Try real SMTP once and fall back to Ethereal if auth fails
+  try {
+    const transporter = nodemailer.createTransport({
+      host: 'smtp.gmail.com',
+      port: 465,
+      secure: true,
+      auth: {
+        user: process.env.EMAIL_USER,
+        pass: process.env.EMAIL_PASSWORD
+      }
+    });
+
+    // Verify credentials once; if fails, fallback
+    await transporter.verify();
+    cachedTransporter = transporter;
+    transporterType = 'smtp';
+    logger.info('✅ SMTP transporter ready (gmail).');
+    return cachedTransporter;
+  } catch (err) {
+    logger.warn('⚠️ SMTP verify failed. Falling back to Ethereal test account.');
+    const testAccount = await nodemailer.createTestAccount();
+    cachedTransporter = nodemailer.createTransport({
+      host: 'smtp.ethereal.email',
+      port: 587,
+      secure: false,
+      auth: {
+        user: testAccount.user,
+        pass: testAccount.pass
+      }
+    });
+    transporterType = 'ethereal';
+    return cachedTransporter;
+  }
 };
 
 // Gửi email xác nhận đơn hàng
@@ -319,8 +349,10 @@ exports.sendOTPEmail = async (userData) => {
     
     const { email, name, otp } = userData;
 
+    const fromAddress = process.env.EMAIL_FROM || process.env.EMAIL_USER || 'no-reply@myphamviet.com';
+
     const mailOptions = {
-      from: `"Mỹ Phẩm Việt" <${process.env.EMAIL_USER}>`,
+      from: `"Mỹ Phẩm Việt" <${fromAddress}>`,
       to: email,
       subject: '🔐 Mã xác thực tài khoản - Mỹ Phẩm Việt',
       html: `
@@ -349,8 +381,7 @@ exports.sendOTPEmail = async (userData) => {
             
             <div class="content">
               <h2 style="color: #667eea; margin-top: 0;">Xin chào ${name}!</h2>
-              <p>Trần Quốc Huy muốn lừa bạn bạn có thể gửi mã OTP cho Huy để Huy lừa bạn được không <strong>Mỹ Phẩm Việt</strong>.</p>
-              <p>Để hoàn tất đăng ký, vui lòng nhập mã OTP bên dưới để Trần Quốc Huy lừa:</p>
+              <p>Để hoàn tất đăng ký tài khoản tại <strong>Mỹ Phẩm Việt</strong>, vui lòng nhập mã OTP bên dưới vào trang xác thực.</p>
               
               <div class="otp-box">
                 <p style="margin: 0 0 10px; color: #4a5568; font-size: 14px; text-transform: uppercase; letter-spacing: 1px; font-weight: 600;">Mã xác thực của bạn</p>
@@ -361,20 +392,20 @@ exports.sendOTPEmail = async (userData) => {
               <div class="warning">
                 <p style="margin: 0; font-size: 14px;"><strong>⚠️ Lưu ý bảo mật:</strong></p>
                 <ul style="margin: 10px 0 0; padding-left: 20px; font-size: 13px;">
-                  <li>Không chia sẻ mã OTP này với bất kỳ ai</li>
-                  <li>Nhân viên Mỹ Phẩm Việt sẽ không bao giờ yêu cầu mã OTP</li>
-                  <li>Nếu bạn không thực hiện đăng ký này, vui lòng bỏ qua email</li>
+                  <li>Không chia sẻ mã OTP này với bất kỳ ai.</li>
+                  <li>Nhân viên Mỹ Phẩm Việt sẽ không bao giờ yêu cầu mã OTP của bạn.</li>
+                  <li>Nếu bạn không thực hiện đăng ký này, vui lòng bỏ qua email hoặc liên hệ hỗ trợ.</li>
                 </ul>
               </div>
 
               <p style="margin-top: 30px; font-size: 14px; color: #718096;">
-                Nếu cần hỗ trợ, liên hệ với chúng tôi qua email hoặc hotline!
+                Nếu cần hỗ trợ, liên hệ với chúng tôi qua email hoặc hotline.
               </p>
             </div>
 
             <div class="footer">
               <p style="margin: 5px 0;">© 2026 Mỹ Phẩm Việt. All rights reserved.</p>
-              <p style="margin: 5px 0;">Email: ${process.env.EMAIL_USER || 'support@myphamviet.com'} | Hotline: 1900-xxxx</p>
+              <p style="margin: 5px 0;">Email: ${fromAddress} | Hotline: 1900-xxxx</p>
             </div>
           </div>
         </body>
@@ -383,17 +414,18 @@ exports.sendOTPEmail = async (userData) => {
     };
 
     const info = await transporter.sendMail(mailOptions);
-    logger.info(`✅ OTP email sent to ${email}: ${info.messageId}`);
-    
-    // Log Ethereal preview URL nếu dùng test account
-    if (info.messageId.includes('ethereal.email')) {
+    logger.info(`✅ OTP email attempted to ${email}: ${info.messageId}`);
+
+    // If Ethereal was used, log preview URL
+    if (transporterType === 'ethereal') {
       const previewUrl = nodemailer.getTestMessageUrl(info);
-      logger.info(`📧 Preview OTP email: ${previewUrl}`);
+      if (previewUrl) logger.info(`📧 Preview OTP email: ${previewUrl}`);
     }
-    
-    return { success: true, messageId: info.messageId };
+
+    return { success: true, messageId: info.messageId, transporter: transporterType };
   } catch (error) {
     logger.error(`Failed to send OTP email: ${error.message}`);
-    throw error;
+    // Don't throw to avoid blocking registration flow; return failure object instead
+    return { success: false, error: error.message };
   }
 };

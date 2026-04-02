@@ -5,7 +5,7 @@ const authMiddleware = require("../middlewares/auth.middleware");
 const isAdmin = require("../middlewares/isAdmin");
 
 // Public routes
-router.get("/available", authMiddleware, couponController.getAvailableCoupons);
+router.get("/available", couponController.getAvailableCoupons);
 router.post("/validate", authMiddleware, couponController.validateCoupon);
 
 // Admin routes

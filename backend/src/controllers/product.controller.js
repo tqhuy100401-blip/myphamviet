@@ -7,26 +7,51 @@ const { clearCacheByPattern } = require("../middlewares/cache.middleware");
 exports.createProduct = catchAsync(async (req, res, next) => {
   console.log('📦 CREATE PRODUCT - req.body:', req.body);
   console.log('📦 CREATE PRODUCT - req.file:', req.file);
+  console.log('📦 req.headers:', req.headers);
   
   let imageValue = null;
   
   // Kiểm tra nếu có file upload
   if (req.file) {
-    imageValue = req.file.path || req.file.filename;
-    console.log('📁 Using uploaded file:', imageValue);
+    // Nếu dùng Cloudinary, lấy url
+    if (req.file.path && req.file.path.includes('cloudinary')) {
+      imageValue = req.file.path;
+      console.log('☁️ Using Cloudinary URL:', imageValue);
+    } 
+    // Nếu dùng local storage, lấy filename và tạo path
+    else {
+      imageValue = `/uploads/${req.file.filename}`;
+      console.log('📁 Using local file:', imageValue);
+    }
   } 
   // Nếu không có file, kiểm tra xem image field có phải URL không
-  else if (req.body.image && req.body.image.startsWith('http')) {
-    imageValue = req.body.image;
-    console.log('✅ Using URL from image field:', imageValue);
+  else if (req.body.image) {
+    // Nếu là base64, từ chối
+    if (req.body.image.startsWith('data:')) {
+      console.error('❌ Received base64 data - rejecting');
+      return next(new AppError('Vui lòng upload file ảnh, không nhận base64', 400));
+    }
+    // Nếu là URL thông thường
+    if (req.body.image.startsWith('http')) {
+      imageValue = req.body.image;
+      console.log('🔗 Using URL from body:', imageValue);
+    }
   }
   
+  // Validate required fields
+  if (!req.body.name) {
+    return next(new AppError('Tên sản phẩm là bắt buộc', 400));
+  }
+  if (!req.body.price || isNaN(Number(req.body.price))) {
+    return next(new AppError('Giá sản phẩm không hợp lệ', 400));
+  }
+
   const product = new Product({
     name: req.body.name,
-    price: req.body.price,
-    description: req.body.description,
-    category: req.body.category,
-    stock: req.body.stock,
+    price: Number(req.body.price),
+    description: req.body.description || '',
+    category: req.body.category || '',
+    stock: req.body.stock ? Number(req.body.stock) : 0,
     image: imageValue
   });
 
@@ -123,6 +148,7 @@ exports.getProducts = catchAsync(async (req, res, next) => {
 // Lấy 1 sản phẩm theo id
 exports.getProductById = catchAsync(async (req, res, next) => {
   const product = await Product.findById(req.params.id)
+    .populate('category', 'name slug')
     .lean()
     .select('-__v');
   
@@ -144,10 +170,19 @@ exports.updateProduct = catchAsync(async (req, res, next) => {
   };
   
   if (req.file) {
-    updateData.image = req.file.path || req.file.filename;
+    // Nếu dùng Cloudinary, lấy url
+    if (req.file.path && req.file.path.includes('cloudinary')) {
+      updateData.image = req.file.path;
+      console.log('☁️ UPDATE - Using Cloudinary URL:', updateData.image);
+    } 
+    // Nếu dùng local storage, lấy filename và tạo path
+    else {
+      updateData.image = `/uploads/${req.file.filename}`;
+      console.log('📁 UPDATE - Using local file:', updateData.image);
+    }
   } else if (req.body.image && req.body.image.startsWith('http')) {
     updateData.image = req.body.image;
-    console.log('✅ UPDATE - Using URL from image field:', req.body.image);
+    console.log('🔗 UPDATE - Using URL from body:', req.body.image);
   }
   
   if (req.body.discount) {

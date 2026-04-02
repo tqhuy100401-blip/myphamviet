@@ -31,21 +31,13 @@ const logsDir = path.join(__dirname, '../../logs');
 const transports = [];
 
 // Console transport (always active in development)
-if (config.NODE_ENV === 'development') {
-  transports.push(
-    new winston.transports.Console({
-      format: consoleFormat,
-      level: 'debug'
-    })
-  );
-} else {
-  transports.push(
-    new winston.transports.Console({
-      format: logFormat,
-      level: 'info'
-    })
-  );
-}
+// Console transport (always active)
+transports.push(
+  new winston.transports.Console({
+    format: consoleFormat,
+    level: 'debug'
+  })
+);
 
 // File transport for errors
 transports.push(
